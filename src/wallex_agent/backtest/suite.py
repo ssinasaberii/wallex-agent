@@ -37,6 +37,18 @@ DAY = 86400
 
 
 def source_hash() -> str:
+    """Git commit of the code (with -dirty if src/ or config/ has uncommitted changes); source hash otherwise."""
+    import subprocess
+
+    try:
+        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True,
+                             check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "src", "config"], cwd=ROOT,
+                               capture_output=True, text=True, check=True).stdout.strip()
+        if sha:
+            return sha + ("-dirty" if dirty else "")
+    except (OSError, subprocess.CalledProcessError):
+        pass
     h = hashlib.sha256()
     for p in sorted((ROOT / "src").rglob("*.py")):
         h.update(p.read_bytes())
