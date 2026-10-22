@@ -157,6 +157,13 @@ def run_cycle(t: int, ctx: CycleContext) -> dict[str, Any]:
         halt = "MACRO"
     elif cfg.btc_filter.enabled and btc_regime in (DOWN, UNKNOWN):
         halt = f"BTC_{btc_regime}"
+    elif ctx.news_gate is not None:  # shadow/live with news: market-wide checks first (09 §7.8.4, Article 6)
+        market = ctx.news_gate("__MARKET__", t)
+        if market.get("event_shock"):
+            halt = "EVENT_SHOCK"
+            summary["news"] = market["blocking_items"][:3]
+        elif any(b.get("reason") == "NEWS_UNAVAILABLE" for b in market.get("blocking_items", [])):
+            halt = "NEWS_UNAVAILABLE"
     if halt:
         summary["halt"] = halt
         _f(fn, f"halt_{halt}")

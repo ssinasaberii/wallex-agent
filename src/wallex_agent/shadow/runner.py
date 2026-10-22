@@ -179,6 +179,17 @@ class ShadowRunner:
         self.stats = {"api_errors": 0, "cycles": 0, "started": int(time.time()), "laya_errors": 0}
         self.db = sqlite3.connect(self.dir / "state.sqlite")
         self.db.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v BLOB)")
+        # News (09 §7.8): one shared store; only variants with news enabled use its gate and headlines.
+        from wallex_agent.context.fng import FearGreed
+        from wallex_agent.context.news import AssetMatcher, NewsStore, load_feeds
+        from wallex_agent.context.news_interpreter import LayaNewsInterpreter
+
+        self.news = NewsStore(cfg.news)
+        self.news_feeds = load_feeds()
+        self.news_matcher = AssetMatcher(self.metas, cfg.data.quote_asset)
+        self.news_interp = LayaNewsInterpreter(secrets.get("LAYA_URL") or "http://127.0.0.1:8000",
+                                               cfg.news.min_choice_prob, cfg.judge.timeout_s)
+        self.fng = FearGreed(cfg.news.fng_url)
         self.variants: dict[str, Variant] = {}
         for name in variants:
             self.variants[name] = self._load_or_new(name)
@@ -195,11 +206,12 @@ class ShadowRunner:
                                              "strategy_version": self.cfg.strategy_version,
                                              "config_hash": self.cfg.config_hash,
                                              "git_commit": source_hash()})
-        vcfg = self.cfg
-        if name.startswith("X"):
-            from wallex_agent.backtest.suite import with_overrides
+        from wallex_agent.backtest.suite import with_overrides
 
-            vcfg = with_overrides(self.cfg, **{"fee_gate.enabled": False})
+        # A = rules, B = Laya, both without news (comparison); C = Laya + news (the trading algorithm).
+        vcfg = with_overrides(self.cfg, **{"news.enabled": name.endswith("C")})
+        if name.startswith("X"):
+            vcfg = with_overrides(vcfg, **{"fee_gate.enabled": False})
         if name.endswith("A"):
             judge = RulesBaselineJudge(self.cfg.judge.baseline_gray_policy)
         else:
@@ -318,6 +330,9 @@ class ShadowRunner:
                                spread_est=spreads, slip_of=slip_of, end_t=self.end_t, log=v.log,
                                config_hash=v.cfg.config_hash,
                                order_flow=lambda sym, H: self.of.evaluate(sym, H, time.time()),
+                               news_gate=(lambda base, _t: self.news.gate(base, time.time()))
+                               if v.cfg.news.enabled else None,
+                               context_extra=self._context_fn(v) if v.judge.provider == "laya" else None,
                                spread_cost_in_gate=False)
             if v.ctx is not None:
                 ctx.funnel = v.ctx.funnel
@@ -329,6 +344,24 @@ class ShadowRunner:
         self.stats["cycles"] += 1
         self.save_state()
         self.report()
+
+    def _context_fn(self, v: Variant):
+        """Context for the Laya judge: Fear & Greed always; related headlines only when news is on."""
+        def fn(c) -> dict:
+            f = self.fng.get()
+            out: dict = {"fng": f"{f['value']} ({f['label']})" if f else "na"}
+            if v.cfg.news.enabled:
+                g = self.news.gate(c.base, time.time())
+                out["news_headlines"] = [f"{x['title']} [{x['source']}, {x['direction']}, severity {x['severity']}]"
+                                         for x in g["context_items"]]
+            return out
+        return fn
+
+    def poll_news(self) -> None:
+        new = self.news.poll(self.news_feeds, self.news_matcher)
+        done = self.news.interpret_pending(self.news_interp)
+        self.stats["news_new"] = self.stats.get("news_new", 0) + new
+        self.stats["news_interpreted"] = self.stats.get("news_interpreted", 0) + done
 
     def finish(self) -> None:
         for v in self.variants.values():
@@ -376,12 +409,29 @@ class ShadowRunner:
                 errs = sum(1 for x in j if x.get("error"))
                 lines += ["", f"Judge calls: {len(j)}, decisions {dec}, errors/timeouts {errs}, "
                               f"latency p50 {statistics.median(lat):.0f} ms" if lat else ""]
+        # News section: what the gate would block right now and the latest interpreted headlines.
+        now = time.time()
+        recent = self.news.recent(now - 24 * 3600)
+        strong = [x for x in recent if self.news._strong_negative(x, now)]
+        last_ok = (datetime.fromtimestamp(self.news.last_ok_poll, UTC).isoformat(timespec="seconds")
+                   if self.news.last_ok_poll else "never")
+        lines += ["", "## News (last 24 h)", "",
+                  f"- headlines stored: {len(recent)}, interpreted: {sum(1 for x in recent if x.interp)}, "
+                  f"feeds last read OK: {last_ok}",
+                  f"- strong negative (would block): {len(strong)}", ""]
+        for x in strong[:10]:
+            i = x.interp or {}
+            lines.append(f"  - [{x.source}] {x.title} -> assets {x.assets or '-'}, {i.get('event_type')}, "
+                         f"systemic={i.get('systemic')}")
+        with (self.dir / "news.jsonl").open("w", encoding="utf-8") as fh:
+            for x in recent:
+                fh.write(json.dumps(x.__dict__, ensure_ascii=False) + "\n")
         (self.dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     # ------------------------------------------------------------------ main loop
     def run(self) -> None:
         sc = self.cfg.shadow
-        next_depth = next_trades = next_flush = 0.0
+        next_depth = next_trades = next_flush = next_news = 0.0
         next_cycle = self._next_cycle_time()
         log.info("shadow %s started; end %s; next cycle %s", self.session,
                  datetime.fromtimestamp(self.end_t, UTC), datetime.fromtimestamp(next_cycle, UTC))
@@ -406,6 +456,9 @@ class ShadowRunner:
                 if now >= next_trades:
                     self.poll_trades()
                     next_trades = now + sc.trades_poll_s
+                if now >= next_news:
+                    self.poll_news()
+                    next_news = now + self.cfg.news.poll_seconds
                 if now >= next_cycle:
                     t = int(now) // H1 * H1
                     log.info("decision cycle t=%s", datetime.fromtimestamp(t, UTC))

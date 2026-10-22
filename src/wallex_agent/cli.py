@@ -22,7 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     sh = sub.add_parser("shadow", help="run the shadow test until the challenge end")
     sh.add_argument("--config", default=None)
     sh.add_argument("--session", default=None, help="resume an existing session id")
-    sh.add_argument("--variants", default="A,B")  # XA/XB (gate off) equal A/B in v1.3, where the gate is off
+    # A = rules, B = Laya, C = Laya + news (the trading algorithm); XA/XB (gate off) equal A/B in v1.3
+    sh.add_argument("--variants", default="A,B,C")
     sh.add_argument("--once", action="store_true", help="run one decision cycle now and exit (smoke test)")
     bt = sub.add_parser("backtest", help="run the backtest suite")
     bt.add_argument("--config", default=None)
@@ -65,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.once:
             r.poll_depth()
             r.poll_trades()
+            r.poll_news()
             r.cycle(int(time.time()) // 3600 * 3600)
             r.flush_recordings()
             print(json.dumps({"session": r.session, "dir": str(r.dir)}, indent=1))

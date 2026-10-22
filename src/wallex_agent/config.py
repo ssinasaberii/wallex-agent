@@ -210,7 +210,12 @@ class News(_M):
     block_asset_hours: float
     block_all_hours: float
     max_age_hours: float
+    max_block_tier: int = 2
     min_choice_prob: float
+    systemic_min_prob: float = 0.6
+    context_hours: float = 24
+    max_feed_silence_min: float = 45
+    fng_url: str = "https://api.alternative.me/fng/"
 
 
 class Macro(_M):

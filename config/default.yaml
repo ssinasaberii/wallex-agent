@@ -176,12 +176,19 @@ order_flow:
   thesis_exit_below: -0.30
 
 news:
-  enabled: false                      # variant C turns it on
+  # Team decision 2026-10-22: news is part of the trading algorithm (shadow/live only; no historical feed).
+  # The shadow runner keeps A/B without news for comparison; C (and live) use it.
+  enabled: true
   poll_seconds: 300
-  block_asset_hours: 12
-  block_all_hours: 6
+  block_asset_hours: 12               # negative, severity 3, tier <= 2, younger than max_age_hours
+  block_all_hours: 6                  # systemic event (EVENT_SHOCK)
   max_age_hours: 6
-  min_choice_prob: 0.5
+  max_block_tier: 2
+  min_choice_prob: 0.5                # below this an answer is "unclear" (never blocks, Q-18)
+  systemic_min_prob: 0.6
+  context_hours: 24                   # related headlines given to the judge as context
+  max_feed_silence_min: 45            # no successful poll for this long -> no new entries (fail closed)
+  fng_url: "https://api.alternative.me/fng/"
 
 macro:
   caution_before_min: 30

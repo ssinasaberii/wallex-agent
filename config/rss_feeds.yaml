@@ -1,0 +1,60 @@
+# English crypto news feeds (09 §7.8, ADR-023: free sources only). Reachability checked from the team's
+# machine on 2026-10-22; Bitcoin Magazine (403) and Bitcoinist (connection reset) were not reachable.
+# tier: 1 = established newsroom with editorial standards, 2 = specialist crypto media,
+#       3 = aggregator / opinion-heavy. Only tier 1-2 items can block entries; tier 3 is context only.
+feeds:
+  - {name: CoinDesk, url: "https://www.coindesk.com/arc/outboundfeeds/rss/", tier: 1}
+  - {name: The Block, url: "https://www.theblock.co/rss.xml", tier: 1}
+  - {name: Blockworks, url: "https://blockworks.co/feed", tier: 1}
+  - {name: Decrypt, url: "https://decrypt.co/feed", tier: 1}
+  - {name: Cointelegraph, url: "https://cointelegraph.com/rss", tier: 2}
+  - {name: The Defiant, url: "https://thedefiant.io/api/feed", tier: 2}
+  - {name: CryptoSlate, url: "https://cryptoslate.com/feed/", tier: 2}
+  - {name: crypto.news, url: "https://crypto.news/feed/", tier: 2}
+  - {name: BeInCrypto, url: "https://beincrypto.com/feed/", tier: 3}
+  - {name: NewsBTC, url: "https://www.newsbtc.com/feed/", tier: 3}
+  - {name: U.Today, url: "https://u.today/rss", tier: 3}
+  - {name: The Daily Hodl, url: "https://dailyhodl.com/feed/", tier: 3}
+
+# Asset matching is deterministic (Laya does not generate text). Each traded coin is matched by its
+# English name (whole word, case-insensitive) and by its ticker (whole word, upper case, 3+ letters).
+# Extra names for coins whose common name differs from the exchange's:
+extra_aliases:
+  BTC: [bitcoin, btc]
+  ETH: [ethereum, ether, eth]
+  BNB: [bnb, binance coin, bnb chain]
+  XRP: [xrp, ripple]
+  SOL: [solana]
+  DOGE: [dogecoin, doge]
+  ADA: [cardano]
+  TRX: [tron, trx]
+  TON: [toncoin, ton]
+  AVAX: [avalanche, avax]
+  SHIB: [shiba inu, shib]
+  PEPE: [pepe]
+  LTC: [litecoin]
+  ARB: [arbitrum]
+  SUI: [sui]
+  HYPE: [hyperliquid]
+  PUMP: [pump.fun, pumpfun]
+  UNI: [uniswap]
+  AAVE: [aave]
+  LINK: [chainlink]
+# Names too generic to match on their own (would tag unrelated headlines)
+ignore_names: [sonic, gram, sky, near, one, sui generis]
+
+# A systemic event blocks entries on every coin (EVENT_SHOCK, 09 §7.8.4). Laya answers a yes/no question
+# "does this threaten the whole crypto market?" on top of the three choice questions. Probed on 2026-10-22,
+# Laya alone mixes up a Lightning wallet bug (0.68) with a Coinbase breach (0.64) and misses a Tether de-peg
+# (0.44), so a headline counts as systemic when it is negative, from a tier <= 2 source, and either
+#   Laya >= systemic_strong_prob with severity 3, or Laya >= systemic_keyword_prob and a keyword below matches.
+systemic_strong_prob: 0.8
+systemic_keyword_prob: 0.4
+systemic_keywords:            # case-insensitive regular expressions
+  - "de-?peg|loses? (its |the )?(dollar )?peg|lost (its |the )?peg|breaks? (its |the )?peg"
+  - "halts? (all )?withdrawals|suspends? (all )?(withdrawals|trading)|freezes? (all )?withdrawals"
+  - "insolven|bankrupt|files for (chapter 11|bankruptcy)"
+  - "(binance|coinbase|okx|bybit|kraken|tether|usdt|usdc|circle|bitfinex|kucoin)\\b.*\\b(hack|hacked|breach|exploit|drained|stolen)"
+  - "\\b(hack|hacked|breach|exploit|drained|stolen)\\b.*\\b(binance|coinbase|okx|bybit|kraken|tether|usdt|usdc|circle|bitfinex|kucoin)"
+  - "bans? (all )?(crypto|cryptocurrency|bitcoin)|(crypto|cryptocurrency) (trading )?ban"
+  - "network halt|chain halt|halts? block production|stops producing blocks"
