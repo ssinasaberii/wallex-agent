@@ -6,8 +6,11 @@
 # 7 days, fee gate off. Chosen by scripts/optimize_tf.py on the 3-year snapshot ecbb7bb14b3ec827
 # (Train search, Validation selection, one Test run; reports/experiments/tf_stage*.csv).
 # The previous hourly configuration is kept in config/v1.2_hourly.yaml.
+#
+# v1.4 (team decision 2026-10-23, ADR-030): exits from scripts/exp_exits.py (Train search, Validation selection,
+# one Test run): T1 target 3R, initial stop 3 x ATR, trailing stop 4 x ATR. News gate on (ADR-029).
 
-strategy_version: v1.3-1D4h-trend
+strategy_version: v1.4-1D4h-trend-exits
 
 challenge:
   # Team, 2026-10-22: ends Friday 21:00 Tehran = 2026-10-23 17:30 UTC (KICKOFF said 10-24; team answer wins).
@@ -84,7 +87,7 @@ setups:
     touch_atr_mult: 0.5
     rsi_min: 40
     rsi_max: 50
-    target_r: 2.0
+    target_r: 3.0                     # v1.4 (was 2.0)
     rr_min: 1.6
     h_max: 168                        # hours (v1.3)
   T2_breakout:
@@ -105,7 +108,7 @@ setups:
   priority: [T2_breakout, T1_pullback, T3_meanrev]
 
 stops:
-  k_atr: 2.0
+  k_atr: 3.0                          # v1.4 (was 2.0): wider stop, smaller position, same 0.25 % risk
   min_stop_pct: 1.5
   max_stop_pct: 8.0                   # 2 x ATR on 4h bars is wider than on 1h (v1.3)
 
@@ -154,7 +157,7 @@ risk:
 
 exits:
   breakeven_at_r: 1.0
-  trail_atr_mult: 3.0                 # v1.3
+  trail_atr_mult: 4.0                 # v1.4 (v1.3: 3.0)
   trail_t1_after_r: 1.0
   time_exit_t3_bars: 168              # hours (name kept for compatibility)
   time_exit_t12_max_bars: 168         # hours: T1/T2 exit after min(2H, this)
