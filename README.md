@@ -1,4 +1,4 @@
-# Wallex Spot Trading Agent — Backtest + Shadow Test
+﻿# Wallex Spot Trading Agent â€” Backtest + Shadow Test
 
 An algorithmic spot trading agent for the Wallex 72-hour hackathon challenge. A deterministic,
 regime-based strategy proposes entries; a local AI model (**Laya**) approves, rejects or defers each entry;
@@ -64,7 +64,7 @@ Output: `reports/backtest/<run_id>/`
 | `equity_drawdown.png`, `episode_returns.png` | charts |
 
 Snapshot used for the reported v1.4 results: `ecbb7bb14b3ec827` (42 symbols, 3 years of 1h candles):
-`python -m wallex_agent backtest --snapshot ecbb7bb14b3ec827` (run `20261022T224409Z`). The earlier hourly v1.2
+`python -m wallex_agent backtest --snapshot ecbb7bb14b3ec827` (run `20261022T231324Z`). The earlier hourly v1.2
 results used `0a4e977b89b6b576` with `--config config/v1.2_hourly.yaml`. The optimisation studies are scripts in
 `scripts/` (`optimize_tf.py`, `exp_exits.py`, `exp_risk.py`, ...) and are summarised in `docs/experiments.md`.
 
@@ -80,7 +80,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run_shadow_forever.ps1 -Session
 Smoke test (one decision cycle now, then exit): `python -m wallex_agent shadow --once --session smoke`.
 
 Variants on the same candidates: **A** rules judge, **B** Laya judge, **C** Laya judge + news gate (the trading
-algorithm). Output: `reports/shadow/<session>/` — `summary.md` (rewritten every hour: equity per variant, decision
+algorithm). Output: `reports/shadow/<session>/` â€” `summary.md` (rewritten every hour: equity per variant, decision
 funnel, judge statistics, news that would block, uptime, API errors), `A|B|C/decisions.jsonl`,
 `B|C/judge_calls/*.json` (full Laya request/response), `news.jsonl` (interpreted headlines), `trades_*.csv`,
 `equity_*.csv`, `state.sqlite` (resume state). The v1.4 session is `challenge-v14`.
@@ -89,13 +89,13 @@ Raw order books (20 levels, every 10 s) and trades are recorded in `data/recordi
 ## 5. Tests and checks
 
 ```powershell
-.\tasks.ps1 test           # 96 tests, including all 10 acceptance tests of spec 09 §13, news and scale-out
+.\tasks.ps1 test           # 96 tests, including all 10 acceptance tests of spec 09 Â§13, news and scale-out
 .\tasks.ps1 lint
 .\tasks.ps1 verify-api     # Phase 0 read-only API checks (writes data/snapshots/verify_*)
 .\tasks.ps1 verify-laya    # Laya contract + CPU latency
 ```
 
-| spec 09 §13 acceptance test | file |
+| spec 09 Â§13 acceptance test | file |
 |---|---|
 | 1 no look-ahead (50 random moments, features and full decisions) | `tests/test_lookahead.py`, `tests/test_lookahead_decisions.py` |
 | 2 reproducibility (byte-identical trades) | `tests/test_reproducibility_settlement.py` |

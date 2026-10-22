@@ -23,7 +23,7 @@ its inputs and reasons.
 |---|---|---|
 | v1.2 | spec strategy: 4h regime, 1h triggers, fee-aware gate | with Wallex's real 0.30 % taker fee it never traded; without the gate it lost money |
 | v1.3 | daily regime, 4h triggers, dollar-adjusted signals, trailing stop, gate off (ADR-028); news gate (ADR-029) | the only configuration positive in Train, Validation and Test of a 3-year snapshot |
-| **v1.4** | exits: T1 target 3R, stop 3 x ATR, trailing 4 x ATR (ADR-030) | same return as v1.3 in 30-day windows, smaller worst window, profit factor 3.1 |
+| **v1.4** | exits: T1 target 3R, stop 3 x ATR, trailing 4 x ATR (ADR-030); kill switch re-arms daily (ADR-031) | same return as v1.3 in 30-day windows, smaller worst window, profit factor 3.1; a never-re-arming kill switch stopped a long continuous account for good |
 
 Selection was always: search on Train, choose on Validation, run Test once. The previous configuration is kept in
 `config/v1.2_hourly.yaml`.
@@ -78,7 +78,7 @@ entries and position updates happen when a 4-hour bar closes.
 | Target | T1 at 3R, T3 at the Bollinger middle band |
 | Time | at most 7 days (T1/T2: min(2H, 168 h); T3: 168 h) |
 | Regime | coin turns DOWNTREND / HIGH_VOL / UNKNOWN, or BTC turns DOWNTREND |
-| Kill switch / settlement | -3 % from the equity peak: sell all and stop buying; 90 min before the challenge end no entries, 60 min before it sell everything (the account ends in TMN, as the brief requires) |
+| Kill switch / settlement | -3 % from the day's equity peak: sell all and stop buying until the next UTC day (ADR-031); 90 min before the challenge end no entries, 60 min before it sell everything (the account ends in TMN, as the brief requires) |
 
 Staged selling (`exits.scale_out`) is implemented and allowed but off: it raised the win rate without raising the
 return. Adding to positions is forbidden (Constitution Article 4); it exists only as a backtest experiment flag
@@ -94,7 +94,7 @@ that the shadow runner refuses.
 | slots | <= 10 coins (open or pending), reserved atomically before an order is sent |
 | one position per coin | no adding, no averaging down |
 | daily loss | 1.5 % in a rolling 24 h window -> no new entries |
-| kill switch | 3 % drawdown from the peak |
+| kill switch | 3 % drawdown from the peak since the start of the UTC day; re-arms every day (ADR-031) |
 | fail closed | missing or stale data, judge timeout or error, news feeds silent, unknown order state -> no new entry |
 
 Higher risk was tested (0.5 %, 1 %, 2 % per trade): it reaches the 3 % kill switch sooner and did worse on Test
@@ -144,7 +144,7 @@ News history is not available for free, so news cannot be backtested; its effect
 
 ## 10. Results
 
-### 10.1 Backtest (`reports/backtest/20261022T224409Z/`)
+### 10.1 Backtest (`reports/backtest/20261022T231324Z/`, commit `ad4a6f2`)
 
 Snapshot `ecbb7bb14b3ec827`: 42 symbols, 3 years of 1h candles. After one year of warm-up (the daily regime needs
 360 bars): Train 2024-10-23 .. 2026-01-03, Validation 2026-01-03 .. 2026-05-28, Test 2026-05-28 .. 2026-10-22.
@@ -158,11 +158,12 @@ Main measure: 30-day windows, each starting with 5,000,000 TMN, two start offset
 Ablations on Validation: switching the fee gate back on gives no trades; computing signals on raw TMN prices
 instead of dollar-adjusted ones turns the result negative (-0.27 % vs +0.35 %); removing T1 turns it negative.
 
-**One continuous account (Validation + Test, no monthly reset): -0.73 %.** A run of six losing trades in May took
-the account 3 % below its peak on 3 August 2026; the kill switch then stopped it for the rest of the period, so it
-missed the August–October gains. (v1.3 in the same run stayed 2.81 % below its peak and ended +4.2 %.) The 3 %
-kill switch is a team rule designed for the 72-hour challenge; how it should reset in longer operation is an open
-team decision.
+**One continuous account (Validation + Test, 9.6 months, no monthly reset): +3.31 %**, 70 trades, win rate 47 %,
+profit factor 1.58, maximum drawdown 3.17 %, fees 87,509 TMN. With the original never-re-arming kill switch the
+same account ended at -0.73 %: losses that built up slowly from May took it 3 % below its peak on 3 August 2026
+and stopped it for good, so it missed the August–October gains. The team chose a daily re-arm (ADR-031,
+`scripts/exp_killswitch.py`); the switch now catches fast losses within a day, while a slow multi-day drawdown can
+exceed 3 % (3.17 % here).
 
 **Benchmarks over the same Test windows (median):** holding BTCTMN +20.2 %, holding USDT +8.3 %, cash 0 %. The
 toman fell sharply (USDT/TMN rose ~40 % between July and October 2026), so anything held in TMN terms gained;
@@ -185,7 +186,8 @@ decision funnel: the team's dashboard "Wallex Agent Decisions" (built by `script
 
 - With real fees the edge is small: a few tenths of a percent to about 1 % per month in 30-day windows, far below
   simply holding BTC or USDT in this period of toman devaluation.
-- The 3 % kill switch makes long continuous runs path-dependent (§10.1).
+- With the daily re-arm, the total drawdown over several days is not capped at 3 % (§10.1); the 1.5 % daily loss
+  stop and the 0.25 % / 1 % risk limits still apply.
 - Order flow and news cannot be evaluated historically; their value is measured only in the shadow test.
 - No historical spread: backtests use the spread in the snapshot's market metadata.
 - Survivorship bias: the universe is today's pair list and today's allowed-markets list.
