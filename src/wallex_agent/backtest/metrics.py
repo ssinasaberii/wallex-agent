@@ -33,7 +33,7 @@ def run_metrics(trades: list[dict], equity: list[tuple[int, float]], initial: fl
         "win_rate_pct": 100 * len(wins) / len(tr) if len(tr) else 0.0,
         "avg_r": float(tr["r_multiple"].mean()) if len(tr) else 0.0,
         "profit_factor": (gross_win / gross_loss) if gross_loss > 0 else (math.inf if gross_win > 0 else 0.0),
-        "avg_hold_h": float(tr["bars_held"].mean()) if len(tr) else 0.0,
+        "avg_hold_h": float(((tr["exit_t"] - tr["entry_t"]) / 3600).mean()) if len(tr) else 0.0,
         "fees_tmn": fees,
         "final_equity_tmn": final,
     }

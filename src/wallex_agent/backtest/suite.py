@@ -206,7 +206,8 @@ def run(cfg, config_path: str, snapshot: str | None, quick: bool = False) -> dic
         variants = {k: variants[k] for k in ("baseline", "fee_gate_on")}
     val_table = {}
     for name, c in variants.items():
-        fp = feats_cal if c.indicators == cfg_cal.indicators and c.regime == cfg_cal.regime else FeatureProvider(c)
+        same_features = c.indicators == cfg_cal.indicators and c.regime == cfg_cal.regime and c.data == cfg_cal.data
+        fp = feats_cal if same_features else FeatureProvider(c)
         rows, _ = run_episodes(c, view, uni, fp, val_eps)
         val_table[name] = episode_stats(rows)
     # fee and slippage sensitivity on the baseline (09 §9.3)

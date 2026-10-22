@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     sh = sub.add_parser("shadow", help="run the shadow test until the challenge end")
     sh.add_argument("--config", default=None)
     sh.add_argument("--session", default=None, help="resume an existing session id")
-    sh.add_argument("--variants", default="A,B,XA,XB")
+    sh.add_argument("--variants", default="A,B")  # XA/XB (gate off) equal A/B in v1.3, where the gate is off
     sh.add_argument("--once", action="store_true", help="run one decision cycle now and exit (smoke test)")
     bt = sub.add_parser("backtest", help="run the backtest suite")
     bt.add_argument("--config", default=None)

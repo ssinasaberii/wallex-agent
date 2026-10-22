@@ -281,7 +281,8 @@ class ShadowRunner:
         out = {}
         for s in syms:
             try:
-                out[s] = self.store.update(self.api, s, 75, self.cfg.data.udf_chunk_bars)
+                # the daily regime needs a year of 1h history; the cache keeps it, so this fetches only new bars
+                out[s] = self.store.update(self.api, s, self.cfg.data.history_days, self.cfg.data.udf_chunk_bars)
             except Exception:
                 self.stats["api_errors"] += 1
                 cached = self.store.load(s)
