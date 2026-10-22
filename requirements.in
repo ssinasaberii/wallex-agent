@@ -1,0 +1,20 @@
+# Core runtime
+pandas
+numpy
+pyarrow
+pydantic>=2
+pyyaml
+python-dotenv
+httpx
+matplotlib
+openai
+# Wallex websocket is socket.io v2 server (EIO=3) -> python-socketio 4.x / python-engineio 3.x
+python-socketio[client]>=4.6,<5
+python-engineio>=3.14,<4
+websocket-client
+requests
+
+# Dev / test
+pytest
+hypothesis
+ruff

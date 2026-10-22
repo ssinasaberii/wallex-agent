@@ -1,0 +1,11 @@
+# High-impact US macro releases used by the macro gate (09 §7.8). Times in UTC.
+# Checked 2026-10-22 against public 2026 calendars (BLS CPI schedule, Fed FOMC calendar, Guggenheim
+# US economic calendar). No high-impact release falls inside the challenge window
+# (now .. 2026-10-23 17:30 UTC), so `events` is empty and the gate is a no-op for the challenge.
+# Nearby releases kept for the record (outside the window):
+#   2026-10-14 12:30 UTC  CPI (Sep)          - already published
+#   2026-10-15 12:30 UTC  PPI, retail sales  - already published
+#   2026-10-28 18:00 UTC  FOMC decision      - after the challenge ends
+#   2026-10-29 12:30 UTC  GDP Q3 adv., PCE   - after the challenge ends
+source: "fedratecalc.com / guggenheiminvestments.com US economic calendar 2026, checked 2026-10-22"
+events: []

@@ -1,0 +1,218 @@
+# Wallex spot agent — default configuration (spec 09 v1.2 + ADR-026/027).
+# Every strategy number here is Experimental (09 §0.6). Values not verified against the live
+# account carry `assumed: true` (09 §0.4). Secrets never go in this file; they live in .env.
+
+strategy_version: v1.2-regime3
+
+challenge:
+  # Team, 2026-10-22: ends Friday 21:00 Tehran = 2026-10-23 17:30 UTC (KICKOFF said 10-24; team answer wins).
+  # .env CHALLENGE_END_UTC overrides if set (Q-15).
+  end_utc: "2026-10-23T17:30:00Z"
+  initial_equity_tmn: 5000000
+  settlement:
+    stop_entries_min: 90              # 05 §14
+    start_selling_min: 60
+    final_check_min: 15
+
+data:
+  base_url: https://api.wallex.ir
+  trigger_resolution: "60"            # only 60 and 1D are real resolutions (api-verification V2)
+  regime_hours: 4                     # 4h built from 1h, UTC boundaries 00/04/.../20
+  udf_chunk_bars: 500                 # API caps a response at ~695 bars
+  history_days: 270                   # 60d warm-up + 180d backtest + margin
+  min_regime_bars: 360                # warm-up = max(150, 360) closed 4h bars (09 §6)
+  min_trigger_bars: 60
+  quote_asset: TMN
+  btc_regime_symbol: BTCUSDT          # ADR-022
+  btc_tmn_symbol: BTCTMN              # RS vs BTC, macro spread check
+  usdt_tmn_symbol: USDTTMN            # USDT-denominated returns in reports
+  fetch_top_n: 45                     # history fetched for the top-N eligible pairs by today's volume
+  # Team decision 2026-10-22 (Q-33): signals are computed on dollar-adjusted prices (TMN price divided by
+  # the USDT/TMN close of the same hour) to remove the dollar's noise; orders, stops, targets and P&L stay
+  # in TMN on TMN pairs. "tmn" restores the original behaviour.
+  signal_price: usdt_adjusted         # usdt_adjusted | tmn
+
+universe:
+  top_n_by_volume: 25
+  max_spread_pct: 0.30
+  exclude_categories: [1, 50]         # hector categories: 1 = stablecoins, 50 = tokenized RWA (Q-24)
+  exclude_stablecoins: [USDT, USDC, DAI, TUSD, BUSD, FDUSD, USDE, USDD, USDP, PYUSD]
+  exclude_non_crypto: [XAUT, PAXG, USOON, COPXON, SLVON]   # Q-24
+  # Q-30: skip pairs with too much missing 1h data. Checked per cycle on the trailing window only
+  # (causal; no look-ahead), so a pair can enter later once its data is clean.
+  data_quality_window_h: 720          # 30 days
+  max_missing_pct: 2.0                # liquid pairs miss ~0.1%; thin pairs 1-7%
+  # Static spread estimate for backtest (no historical spread). Median of shadow snapshots when
+  # available, else the Phase 0 snapshot. Reported as a limitation (09 §7.1).
+  spread_estimate_source: phase0_snapshot
+
+indicators:
+  ema_fast: 20
+  ema_slow: 50
+  ema_slope_lookback: 10
+  atr_period: 14
+  adx_period: 14
+  rsi_period: 14
+  bb_period: 20
+  bb_std: 2.0
+  donchian_period: 20
+  relvol_period: 20
+  atr_pct_rank_window: 360            # 60 days of 4h bars
+  ad_slope_bars: 5
+
+btc_filter:
+  enabled: true
+  high_vol_size_mult: 0.5
+
+regime:
+  high_vol_atr_pct_rank: 90
+  trend_adx_min: 25
+  range_adx_max: 20
+  hysteresis_bars: 2
+  hysteresis_enabled: true
+
+setups:
+  T1_pullback:
+    enabled: true
+    lookback_bars: 3
+    touch_atr_mult: 0.5
+    rsi_min: 40
+    rsi_max: 50
+    target_r: 2.0
+    rr_min: 1.6
+    h_max: 24
+  T2_breakout:
+    enabled: true
+    relvol_min: 1.5
+    breakout_ad_confirm: false
+    target_r: 2.5
+    rr_min: 2.0
+    h_max: 24
+  T3_meanrev:
+    enabled: true                     # Q-13: decided after ablation
+    rsi_max: 35
+    rr_min: 1.0
+    h_max: 12
+  gray_zone:
+    enabled: true
+    size_mult: 0.5
+  priority: [T2_breakout, T1_pullback, T3_meanrev]
+
+stops:
+  k_atr: 2.0
+  min_stop_pct: 1.5
+  max_stop_pct: 4.0
+
+fee_gate:
+  enabled: true
+  safety_buffer_pct: 0.15
+  min_net_edge_pct: 0.25
+  c_move: 0.6                         # calibrated on Train in P4
+  horizons_h: [2, 4, 6, 8, 12, 24]
+  max_cost_to_move: 0.5
+
+fees:
+  # Wallex public fee schedule, user level 1 (30-day volume 0-100M TMN), given by the team on
+  # 2026-10-22 (Q-31). Not read from /v1/account/fee (V7 still fails), hence source below.
+  assumed: false
+  source: "team: Wallex fee schedule level 1"
+  snapshot_id: wallex-level1-2026-10-22
+  maker_pct: 0.25
+  taker_pct: 0.30
+  sensitivity_per_side_pct: [0.10, 0.20, 0.25, 0.30]
+
+slippage:
+  assumed: true
+  tier1_top_n: 5
+  tier1_per_side_pct: 0.05
+  tier2_per_side_pct: 0.15
+
+ranking:
+  max_candidates_per_cycle: 3
+  w_rs_vs_btc: 0.4
+  w_adx: 0.3
+  w_relvol: 0.3
+
+risk:
+  equity_cap_tmn: 5000000
+  risk_per_trade_pct: 0.25
+  max_open_risk_pct: 1.0
+  max_position_pct: 15.0
+  max_slots: 10
+  min_buy_tmn: 100000
+  max_daily_loss_pct: 1.5
+  kill_switch_drawdown_pct: 3.0
+
+exits:
+  breakeven_at_r: 1.0
+  trail_atr_mult: 2.0
+  trail_t1_after_r: 1.0
+  time_exit_t3_bars: 12
+  time_exit_t12_max_bars: 24
+  stop_check_seconds: 15
+  thesis_exit_orderflow: log_only
+
+order_flow:
+  obi_mode: confirm                   # shadow/live only
+  tfi_mode: log_only                  # until isBuyOrder is confirmed (V5)
+  obi_band_pct: 0.5
+  w_obi_frac_of_h: 0.05
+  w_obi_min_min: 2
+  w_obi_max_min: 15
+  w_obi_min_updates: 5
+  w_tfi_min_trades: 20
+  w_tfi_max_frac_of_h: 0.25
+  min_tfi_value_tmn: 20000000
+  reject_below: -0.20
+  thesis_exit_below: -0.30
+
+news:
+  enabled: false                      # variant C turns it on
+  poll_seconds: 300
+  block_asset_hours: 12
+  block_all_hours: 6
+  max_age_hours: 6
+  min_choice_prob: 0.5
+
+macro:
+  caution_before_min: 30
+  block_before_min: 15
+  block_after_min: 30
+  spread_recovery_mult: 1.5
+
+judge:
+  provider: rules_baseline            # backtest uses only this (09 §7.9)
+  timeout_s: 20
+  candidate_ttl_s: 600
+  baseline_gray_policy: reject
+  laya:
+    url_env: LAYA_URL
+    checkpoint: english
+    max_state_tokens: 300
+    thresholds:
+      insufficient: 0.5
+      conflict: 0.5
+      news: 0.5
+      gray: 0.5
+      approve: 0.5
+      min: 0.4
+  llm:
+    model: gpt-6-luna
+    allowed_models: [gpt-6-luna, gpt-5.6-luna, gpt-5-mini]
+    max_spend_usd: 2.0
+    max_calls: 3000
+    price_per_1m_usd: {input: 0.115, output: 0.575, assumed: true}
+
+backtest:
+  seed: 20261022
+  split: {train: 0.6, validation: 0.2, test: 0.2}
+  episode_hours: 72
+  episode_start_hours_utc: [0, 6, 12, 18]
+  random_entry_runs: 200
+
+shadow:
+  candle_poll_delay_s: 20
+  depth_poll_s: 10
+  trades_poll_s: 15
+  record_depth_levels: 20
+  virtual_end_utc: null
