@@ -29,7 +29,7 @@ from wallex_agent.risk.sizing import size_position
 from wallex_agent.strategy import fee_horizon
 from wallex_agent.strategy.candidate import Candidate, candidate_id
 from wallex_agent.strategy.regime import DOWN, HIGH_VOL, UNKNOWN, regime_at
-from wallex_agent.strategy.triggers import T2, pick_setup, trigger_inputs
+from wallex_agent.strategy.triggers import T1, T2, pick_setup, trigger_inputs
 from wallex_agent.strategy.universe_rank import rank, ret_24h, select_universe
 
 H1 = 3600
@@ -142,6 +142,15 @@ def run_cycle(t: int, ctx: CycleContext) -> dict[str, Any]:
                                    sym_regime, btc_regime, t, cfg)
             if why:
                 sell(pos, why)
+            elif cfg.exits.pyramid_enabled and not pos.added and pos.highest_high >= pos.entry_price \
+                    + cfg.exits.pyramid_at_r * pos.R:
+                # Backtest experiment only (Article 4 forbids adding): add to a winner, stop to break-even first.
+                pos.raise_stop(pos.entry_price * (1 + pos.g_be), "PYRAMID_BREAKEVEN", t)
+                add_qty = ctx.metas[pos.symbol].floor_qty(pos.qty0 * cfg.exits.pyramid_add_fraction)
+                px = float(tb["close"].iloc[-1])
+                if add_qty > 0 and add_qty * px * (1 + ctx.fee.taker) * 1.01 < pf.free_cash():
+                    ctx.broker.submit(Order(f"P-{pos.candidate_id}-{t}", pos.symbol, pos.base, "BUY", "MARKET",
+                                            add_qty, t, "PYRAMID", pos.candidate_id))
 
     # ---- 4. entry halts ------------------------------------------------------------------------
     if not on_trigger:
@@ -298,7 +307,10 @@ def run_cycle(t: int, ctx: CycleContext) -> dict[str, Any]:
         risk_tmn = sz.qty * c.price * (g.stop_dist + g.cost_rt)
         cash_need = sz.notional_tmn * (1 + ctx.fee.taker + ctx.slip_of(c.symbol)) * 1.002  # small price buffer
         plan = {"setup": c.setup, "stop_dist": g.stop_dist,
-                "target_dist": None if c.setup == T2 else g.target_dist,  # T2 exits by trailing only
+                # T2 exits by trailing only; T1 too when its fixed 2R target is switched off
+                "target_dist": None if (c.setup == T2 or (c.setup == T1 and not cfg.exits.t1_fixed_target))
+                else g.target_dist,
+                "scale_out": [list(x) for x in cfg.exits.scale_out],
                 "cost_rt": g.cost_rt, "g_be": ctx.fee.g_break_even, "H": g.H, "gray_zone": c.gray_zone,
                 "candidate_id": c.candidate_id}
         res, why = pf.try_reserve(c.base, c.symbol, cash_need, risk_tmn, eq_base, plan)

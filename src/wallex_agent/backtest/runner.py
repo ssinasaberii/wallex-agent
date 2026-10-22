@@ -74,7 +74,7 @@ def run_period(cfg, base_view: HistoricalMarketView, uni: Universe, start_t: int
         s = cfg.slippage
         return slip_mult * (s.tier1_per_side_pct if sym in uni.tier1 else s.tier2_per_side_pct) / 100
 
-    broker = BacktestSimBroker(pf, fee.taker, slip_of)
+    broker = BacktestSimBroker(pf, fee.taker, slip_of, cfg.exits.scale_out_breakeven)
     log = DecisionLog(log_dir, header or {"mode": "backtest", "variant": "A", "strategy_version": cfg.strategy_version})
     ctx = CycleContext(cfg=cfg, view=base_view, features=features, portfolio=pf, broker=broker, judge=judge, fee=fee,
                        metas=uni.metas, static_symbols=uni.static_symbols, spread_est=uni.spread_est,

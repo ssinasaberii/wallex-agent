@@ -14,9 +14,10 @@ from wallex_agent.risk.portfolio import Order, Portfolio
 
 
 class BacktestSimBroker:
-    def __init__(self, portfolio: Portfolio, fee_taker: float, slip_of):
+    def __init__(self, portfolio: Portfolio, fee_taker: float, slip_of, scale_breakeven: bool = True):
         self.pf = portfolio
         self.fee = fee_taker
+        self.scale_breakeven = scale_breakeven
         self.slip_of = slip_of            # symbol -> slippage fraction per side
         self.queue: list[Order] = []
         self.fills: list[dict] = []
@@ -49,7 +50,16 @@ class BacktestSimBroker:
         slip = self.slip_of(symbol)
         for order in [q for q in self.queue if q.symbol == symbol]:
             self.queue.remove(order)
-            if order.side == "BUY":
+            if order.side == "BUY" and order.reason == "PYRAMID":  # backtest experiment only
+                if order.base not in self.pf.positions:
+                    order.status = "CANCELED"
+                    continue
+                px = o * (1 + slip)
+                fee = order.qty * px * self.fee
+                self.pf.on_add_fill(order.base, order.qty, px, fee, t_open)
+                order.status, order.filled_qty = "FILLED", order.qty
+                out.append({"t": t_open, "symbol": symbol, "side": "BUY", "price": px, "qty": order.qty})
+            elif order.side == "BUY":
                 px = o * (1 + slip)
                 fee = order.qty * px * self.fee
                 pos = self.pf.on_buy_fill(order.base, order.qty, px, fee, t_open)
@@ -74,10 +84,23 @@ class BacktestSimBroker:
             if pos.symbol != symbol or pos.exit_order is not None:
                 continue
             exit_px, why = None, None
-            if lo <= pos.stop:
+            if lo <= pos.stop:  # pessimistic: the stop comes before any partial target in the same bar
                 exit_px, why = min(pos.stop, o) * (1 - slip), "STOP" if pos.stop < pos.entry_price else "TRAIL_STOP"
-            elif pos.target is not None and h >= pos.target:
-                exit_px, why = pos.target * (1 - slip), "TARGET"
+            else:
+                for lvl in pos.scale_plan:  # staged selling (reduce only)
+                    if not lvl["done"] and h >= lvl["price"] and pos.qty > 0:
+                        lvl["done"] = True
+                        q = min(pos.qty, pos.qty0 * lvl["fraction"])
+                        px = lvl["price"] * (1 - slip)
+                        fee = q * px * self.fee
+                        tr = self.pf.on_sell_fill(base, q, px, fee, t_close, "SCALE_OUT")
+                        out.append({"t": t_close, "symbol": symbol, "side": "SELL", "price": px, "trade": tr})
+                        if base in self.pf.positions and self.scale_breakeven:
+                            pos.raise_stop(pos.entry_price * (1 + pos.g_be), "SCALE_OUT_BREAKEVEN", t_close)
+                if base not in self.pf.positions:
+                    continue
+                if pos.target is not None and h >= pos.target:
+                    exit_px, why = pos.target * (1 - slip), "TARGET"
             if exit_px is not None:
                 fee = pos.qty * exit_px * self.fee
                 tr = self.pf.on_sell_fill(base, pos.qty, exit_px, fee, t_close, why)

@@ -187,6 +187,21 @@ class Exits(_M):
     time_exit_t12_max_bars: int
     stop_check_seconds: int
     thesis_exit_orderflow: Literal["log_only", "off", "on"]
+    # Staged selling: [[at_R, fraction_of_initial_qty], ...]; after the first partial sale the stop can move to
+    # break-even. Reducing a position is allowed (Article 4 forbids only adding).
+    scale_out: list[list[float]] = Field(default_factory=list)
+    scale_out_breakeven: bool = True
+    t1_fixed_target: bool = True        # False: T1 has no fixed 2R exit and trails like T2
+    # Staged buying (adding to a winner). FORBIDDEN by Constitution Article 4 / ADR-004: backtest experiments only.
+    pyramid_enabled: bool = False
+    pyramid_at_r: float = 1.0
+    pyramid_add_fraction: float = 0.5
+
+    @model_validator(mode="after")
+    def _checks(self) -> Exits:
+        if sum(f for _, f in self.scale_out) > 1.0 + 1e-9:
+            raise ValueError("scale_out fractions add up to more than the whole position")
+        return self
 
 
 class OrderFlow(_M):

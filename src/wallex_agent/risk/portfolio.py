@@ -66,6 +66,9 @@ class Position:
     bars_held: int = 0
     exit_order: Order | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
+    qty0: float = 0.0                                                  # quantity at entry
+    scale_plan: list[dict[str, Any]] = field(default_factory=list)     # [{price, fraction, done}]
+    added: bool = False                                                # pyramiding experiment only
 
     @property
     def R(self) -> float:
@@ -162,8 +165,24 @@ class Portfolio:
                            stop=stop, initial_stop=stop, target=target, stop_dist=plan["stop_dist"],
                            cost_rt=plan["cost_rt"], g_be=plan["g_be"], H=plan.get("H"),
                            gray_zone=plan.get("gray_zone", False), candidate_id=plan["candidate_id"],
-                           entry_fee_tmn=fee_tmn, highest_high=price)
+                           entry_fee_tmn=fee_tmn, highest_high=price, qty0=qty)
+            R = price * plan["stop_dist"]
+            pos.scale_plan = [{"price": price + at_r * R, "fraction": frac, "done": False}
+                              for at_r, frac in plan.get("scale_out", [])]
             self.positions[base] = pos
+            return pos
+
+    def on_add_fill(self, base: str, qty: float, price: float, fee_tmn: float, t: int) -> Position:
+        """Pyramiding experiment only (Article 4 forbids adding in the trading configuration)."""
+        with self._lock:
+            pos = self.positions[base]
+            self.cash -= qty * price + fee_tmn
+            self.fees_paid += fee_tmn
+            pos.entry_price = (pos.entry_price * pos.qty + price * qty) / (pos.qty + qty)
+            pos.qty += qty
+            pos.entry_fee_tmn += fee_tmn
+            pos.added = True
+            pos.events.append({"t": t, "type": "PYRAMID_ADD", "qty": qty, "price": price})
             return pos
 
     def on_sell_fill(self, base: str, qty: float, price: float, fee_tmn: float, t: int, exit_type: str) -> dict:

@@ -134,6 +134,23 @@ class ShadowSimBroker:
             if not book or not book.get("bid"):
                 continue
             bid = float(book["bid"][0]["price"])
+            if bid > pos.stop:
+                for lvl in pos.scale_plan:  # staged selling: reduce only, never more than the free quantity
+                    if lvl["done"] or bid < lvl["price"] or pos.qty <= 0:
+                        continue
+                    q = min(pos.qty, pos.qty0 * lvl["fraction"])
+                    px = walk_book(book.get("bid", []), q)
+                    if px is None:
+                        break
+                    lvl["done"] = True
+                    now = int(time.time())
+                    tr = self.pf.on_sell_fill(pos.base, q, px, q * px * self.fee, now, "SCALE_OUT")
+                    self.log.exit(now, tr, "SCALE_OUT", pos.symbol)
+                    if pos.base not in self.pf.positions:
+                        break
+                    pos.raise_stop(pos.entry_price * (1 + pos.g_be), "SCALE_OUT_BREAKEVEN", now)
+                if pos.base not in self.pf.positions:
+                    continue
             why = None
             if bid <= pos.stop:
                 why = "STOP" if pos.stop < pos.entry_price else "TRAIL_STOP"
@@ -159,6 +176,8 @@ class Variant:
 
 class ShadowRunner:
     def __init__(self, cfg, session_id: str | None = None, variants: tuple[str, ...] = ("A", "B")):
+        if cfg.exits.pyramid_enabled:
+            raise ValueError("pyramiding (adding to positions) is forbidden outside backtest experiments (Article 4)")
         self.cfg = cfg
         self.api = WallexRest()
         self.store = CandleStore()
