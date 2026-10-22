@@ -219,6 +219,7 @@ class ShadowRunner:
         start = int(time.time())
         pf = pickle.loads(row[0]) if row else Portfolio(self.cfg.challenge.initial_equity_tmn, self.cfg.risk,
                                                          start, self.end_t)
+        pf.cfg = self.cfg.risk  # a resumed account follows the current risk rules (e.g. kill-switch reset)
         from wallex_agent.backtest.suite import source_hash
 
         dlog = DecisionLog(self.dir / name, {"mode": "shadow", "variant": name,

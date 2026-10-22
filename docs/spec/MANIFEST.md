@@ -11,7 +11,7 @@
 | `04-caveman-and-data.md` | 8516 | `3db761e8376703a9434e8bad097c335a41909663dfcd5edc7d9ed31b759ec260` |
 | `05-risk-and-lifecycle.md` | 16970 | `028954820a6292a4488ac1e73c8cb9dde4b04aef1215935d4fab06a508132e6a` |
 | `06-validation-and-roadmap.md` | 9475 | `8010afd0c794eb0dbe020d884d7c2757518d889963ccd0120488d99f1409722c` |
-| `07-decisions-and-sources.md` | 20739 | `60ab2a77e242dd6f91c1c763d60ac9408e4780ca269ee99596346920aeadee8d` (ADR-017..030, 2026-10-23) |
+| `07-decisions-and-sources.md` | 21928 | `16c9a84811898029619c614ba3ecf5695c2ac07786f9df6e10cfb099709e9dc3` (ADR-017..031, 2026-10-23) |
 | `08-fee-aware-time-windows.md` | 12911 | `06d6d83a3140c46744bef6b13c8e44712faaeddd8c74fbf819e0ff3091edf60f` |
 | `09-v1.2-merged-technical-and-testing.md` | 54221 | `2688d1a2e0dee87043edf546fa7406f7617d5d5dbc62a31ade3e6d138bf6007f` (v1.2 + ADR-026/027 + پاسخ Q-18/19/21، 2026-10-22) |
 | `README.md` | 4224 | `5dd4d6ba012748b69ac8f973bf279e87f9aa8a932c539e4d58d2d24233e7cce1` |

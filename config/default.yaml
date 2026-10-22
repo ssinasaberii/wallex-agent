@@ -154,6 +154,9 @@ risk:
   min_buy_tmn: 100000
   max_daily_loss_pct: 1.5
   kill_switch_drawdown_pct: 3.0
+  # Team decision 2026-10-23 (ADR-031): the 3 % kill switch re-arms at each UTC day and measures the drawdown from
+  # that day's start. Before: never re-armed. One 9.6-month account: -0.73 % (never) vs +3.31 % (daily).
+  kill_switch_reset: daily
 
 exits:
   breakeven_at_r: 1.0
