@@ -121,6 +121,23 @@ def test_kill_switch_at_3pct_drawdown_stops_buys():
     assert r is None and why == "KILL_SWITCH"
 
 
+@pytest.mark.parametrize("mode,next_t,rearmed", [("never", T0 + 86400, False), ("daily", T0 + 86400, True),
+                                                 ("daily", T0 + 7200, False), ("monthly", T0 + 86400, False)])
+def test_kill_switch_reset_modes(mode, next_t, rearmed):
+    from wallex_agent.backtest.suite import with_overrides
+
+    cfg = with_overrides(CFG, **{"risk.kill_switch_reset": mode})
+    p = Portfolio(5_000_000, cfg.risk, T0, T0 + 40 * 86400)
+    p.mark(T0, {})
+    p.cash -= 0.031 * 5_000_000
+    p.mark(T0 + 3600, {})
+    assert p.killed
+    p.mark(next_t, {})
+    assert p.killed is (not rearmed)
+    if rearmed:  # the drawdown peak restarts from the current equity
+        assert p.peak_equity == pytest.approx(p.equity({}))
+
+
 def test_kill_switch_sells_everything_in_cycle(monkeypatch):
     from wallex_agent.engine import decision_cycle as dc
 

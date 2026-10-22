@@ -58,6 +58,8 @@ class RunResult:
     killed: bool
     kill_reason: str
     leftover_qty: dict[str, float] = field(default_factory=dict)
+    kill_count: int = 0       # times the kill switch tripped
+    kill_resets: int = 0      # times it re-armed (risk.kill_switch_reset)
 
 
 def run_period(cfg, base_view: HistoricalMarketView, uni: Universe, start_t: int, end_t: int, *,
@@ -112,4 +114,4 @@ def run_period(cfg, base_view: HistoricalMarketView, uni: Universe, start_t: int
         equity[-1] = (equity[-1][0], final)
     log.close()
     return RunResult(pf.trades, equity, dict(ctx.funnel), log.records, final, pf.fees_paid, pf.killed,
-                     pf.kill_reason, leftover)
+                     pf.kill_reason, leftover, getattr(pf, "kill_count", 0), getattr(pf, "kill_resets", 0))

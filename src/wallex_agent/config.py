@@ -177,6 +177,9 @@ class Risk(_M):
     min_buy_tmn: float
     max_daily_loss_pct: float
     kill_switch_drawdown_pct: float
+    # When a tripped kill switch re-arms and the drawdown peak restarts (UTC calendar boundaries).
+    # "never" = the original rule (stopped until a person decides); others are experiments for long operation.
+    kill_switch_reset: Literal["never", "daily", "weekly", "monthly"] = "never"
 
 
 class Exits(_M):

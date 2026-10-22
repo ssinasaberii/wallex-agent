@@ -11,6 +11,7 @@ from __future__ import annotations
 import threading
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 LIVE_STATES = {"CREATED", "SUBMITTED", "ACKNOWLEDGED", "PARTIALLY_FILLED", "CANCEL_REQUESTED", "UNKNOWN"}
@@ -208,14 +209,31 @@ class Portfolio:
             return trade
 
     # ------------------------------------------------------------------ account risk
+    @staticmethod
+    def _period_key(t: int, mode: str):
+        d = datetime.fromtimestamp(t, UTC)
+        return {"daily": d.date(), "weekly": d.isocalendar()[:2], "monthly": (d.year, d.month)}.get(mode)
+
     def mark(self, t: int, marks: dict[str, float]) -> float:
         eq = self.equity(marks)
+        mode = getattr(self.cfg, "kill_switch_reset", "never")
+        if mode != "never":
+            key = self._period_key(t, mode)
+            if getattr(self, "_reset_key", None) is None:
+                self._reset_key = key
+            elif key != self._reset_key:  # new period: re-arm and restart the drawdown peak from here
+                self._reset_key = key
+                self.peak_equity = eq
+                if self.killed:
+                    self.killed, self.kill_reason = False, ""
+                    self.kill_resets = getattr(self, "kill_resets", 0) + 1
         self.peak_equity = max(self.peak_equity, eq)
         self.equity_hist.append((t, eq))
         while self.equity_hist and self.equity_hist[0][0] < t - 24 * 3600:
             self.equity_hist.popleft()
         if not self.killed and (self.peak_equity - eq) >= self.cfg.kill_switch_drawdown_pct / 100 * self.peak_equity:
             self.killed, self.kill_reason = True, f"drawdown {(self.peak_equity - eq) / self.peak_equity:.2%}"
+            self.kill_count = getattr(self, "kill_count", 0) + 1
         return eq
 
     def daily_loss_breached(self, eq: float, equity_base: float) -> bool:
