@@ -1,4 +1,4 @@
-# Architecture — Wallex Spot Trading Agent (v1.4)
+# Architecture — Wallex Spot Trading Agent (v1.4.1)
 
 This document answers the challenge brief's review questions: architecture and core logic, how AI and the
 Wallex tools are used, buy/sell conditions, capital and risk management, how to re-run and evaluate, and the
@@ -12,7 +12,7 @@ A deterministic engine scans liquid Wallex spot TMN pairs every four hours. It c
 (TMN price divided by that hour's USDT/TMN rate), so the toman's own moves do not create signals. Candidates are
 ranked, checked against live order flow and **news** (shadow/live), and sent to an **AI entry judge (Laya, a
 local 421M-parameter decision model)** that can only approve, reject or defer. A deterministic risk engine sizes
-each position at 0.25 % risk including the full round-trip fee, and enforces caps (10 slots, 1 % total risk,
+each position at 0.5 % risk including the full round-trip fee, and enforces caps (10 slots, 2 % total risk,
 15 % per position, 100,000 TMN minimum) and a 3 % kill switch. Exits (stop, trailing stop, target, time, regime,
 settlement) are deterministic and never involve the AI. Every candidate, rejected ones included, is logged with
 its inputs and reasons.
@@ -24,6 +24,7 @@ its inputs and reasons.
 | v1.2 | spec strategy: 4h regime, 1h triggers, fee-aware gate | with Wallex's real 0.30 % taker fee it never traded; without the gate it lost money |
 | v1.3 | daily regime, 4h triggers, dollar-adjusted signals, trailing stop, gate off (ADR-028); news gate (ADR-029) | the only configuration positive in Train, Validation and Test of a 3-year snapshot |
 | **v1.4** | exits: T1 target 3R, stop 3 x ATR, trailing 4 x ATR (ADR-030); kill switch re-arms daily (ADR-031) | same return as v1.3 in 30-day windows, smaller worst window, profit factor 3.1; a never-re-arming kill switch stopped a long continuous account for good |
+| **v1.4.1** | risk per trade 0.5 %, total open risk 2 % (ADR-032) | v1.4 had only 3.7 % of capital in positions on average; of six sizing/breadth levers only risk per trade mattered, and 0.5 % doubled the continuous-account return |
 
 Selection was always: search on Train, choose on Validation, run Test once. The previous configuration is kept in
 `config/v1.2_hourly.yaml`.
@@ -88,8 +89,8 @@ that the shadow runner refuses.
 
 | limit | value |
 |---|---|
-| risk per trade | 0.25 % of min(equity, 5 M TMN), including the full round-trip cost |
-| total open risk | 1 % |
+| risk per trade | 0.5 % of min(equity, 5 M TMN), including the full round-trip cost (ADR-032; was 0.25 %) |
+| total open risk | 2 % (was 1 %) |
 | position size | <= 15 % of capital, >= 100,000 TMN and >= the exchange minimum |
 | slots | <= 10 coins (open or pending), reserved atomically before an order is sent |
 | one position per coin | no adding, no averaging down |
@@ -99,6 +100,13 @@ that the shadow runner refuses.
 
 Higher risk was tested (0.5 %, 1 %, 2 % per trade): it reaches the 3 % kill switch sooner and did worse on Test
 (`docs/experiments.md` §3).
+
+Capital deployment study (`scripts/exp_capital.py`, `docs/experiments.md` §8): v1.4 has on average only 3.7 % of
+capital in positions. Of risk per trade, position cap, daily stop, universe size, candidates per cycle and the
+gray-zone policy, only risk per trade changed the result. In one continuous 9.6-month account, 0.5 % per trade
+gave +6.98 % (drawdown 6.2 %, worst month -3.6 %) vs +3.31 % at 0.25 %; 0.75 % and 1 % did worse (kill switch
+trips). The binding constraint is signal scarcity (no position 65 % of hours), not sizing. The user chose 0.5 %
+(ADR-032, v1.4.1).
 
 ## 7. How AI is used
 
@@ -144,7 +152,7 @@ News history is not available for free, so news cannot be backtested; its effect
 
 ## 10. Results
 
-### 10.1 Backtest (`reports/backtest/20261022T231324Z/`, commit `ad4a6f2`)
+### 10.1 Backtest (`reports/backtest/20261023T003238Z/`, v1.4.1)
 
 Snapshot `ecbb7bb14b3ec827`: 42 symbols, 3 years of 1h candles. After one year of warm-up (the daily regime needs
 360 bars): Train 2024-10-23 .. 2026-01-03, Validation 2026-01-03 .. 2026-05-28, Test 2026-05-28 .. 2026-10-22.
@@ -152,24 +160,29 @@ Main measure: 30-day windows, each starting with 5,000,000 TMN, two start offset
 
 | period (30-day windows) | mean return | median | worst window | profitable windows | trades |
 |---|---:|---:|---:|---:|---:|
-| Validation | +0.35 % | +0.06 % | -0.17 % | 50 % | 32 |
-| **Test (run once)** | **+1.10 %** | +0.08 % | -0.16 % | 50 % | 74 |
+| Validation | +0.70 % | +0.13 % | -0.33 % | 50 % | 32 |
+| **Test** | **+2.03 %** | +0.15 % | -0.32 % | 50 % | 70 |
+
+v1.4 at 0.25 % risk (run `20261022T231324Z`, commit `ad4a6f2`; Test run once for the strategy choice):
+Validation +0.35 %, Test +1.10 %. The risk level was chosen on Validation in `scripts/exp_capital.py`.
 
 Ablations on Validation: switching the fee gate back on gives no trades; computing signals on raw TMN prices
 instead of dollar-adjusted ones turns the result negative (-0.27 % vs +0.35 %); removing T1 turns it negative.
 
-**One continuous account (Validation + Test, 9.6 months, no monthly reset): +3.31 %**, 70 trades, win rate 47 %,
-profit factor 1.58, maximum drawdown 3.17 %, fees 87,509 TMN. With the original never-re-arming kill switch the
+**One continuous account (Validation + Test, 9.6 months, no monthly reset): +6.98 %** (v1.4.1), 69 trades, win
+rate 45 %, profit factor 1.61, maximum drawdown 6.22 %, fees 173,289 TMN, on average 7 % of capital in positions
+(max 60 %), mean monthly return +0.72 %, worst month -3.6 % (`reports/experiments/period_stats_20261023T003238Z.json`).
+At 0.25 % (v1.4) the same account made +3.31 % with a 3.17 % drawdown. With the original never-re-arming kill switch the
 same account ended at -0.73 %: losses that built up slowly from May took it 3 % below its peak on 3 August 2026
 and stopped it for good, so it missed the August–October gains. The team chose a daily re-arm (ADR-031,
 `scripts/exp_killswitch.py`); the switch now catches fast losses within a day, while a slow multi-day drawdown can
-exceed 3 % (3.17 % here).
+exceed 3 % (3.17 % at 0.25 % risk, 6.22 % at 0.5 %).
 
 **Benchmarks over the same Test windows (median):** holding BTCTMN +20.2 %, holding USDT +8.3 %, cash 0 %. The
 toman fell sharply (USDT/TMN rose ~40 % between July and October 2026), so anything held in TMN terms gained;
-the strategy invests a small part of the capital at a time (0.25 % risk per trade) and captures little of that.
+the strategy invests a small part of the capital at a time (0.5 % risk per trade) and captures little of that.
 
-### 10.2 Shadow test (`reports/shadow/challenge-v14/`)
+### 10.2 Shadow test (`reports/shadow/challenge-v15/`)
 
 Live Wallex data, simulated orders filled against the real order book, three virtual accounts on the same
 candidates (A rules, B Laya, C Laya + news), decisions every 4 hours until the challenge end
@@ -187,7 +200,7 @@ decision funnel: the team's dashboard "Wallex Agent Decisions" (built by `script
 - With real fees the edge is small: a few tenths of a percent to about 1 % per month in 30-day windows, far below
   simply holding BTC or USDT in this period of toman devaluation.
 - With the daily re-arm, the total drawdown over several days is not capped at 3 % (§10.1); the 1.5 % daily loss
-  stop and the 0.25 % / 1 % risk limits still apply.
+  stop and the 0.5 % / 2 % risk limits still apply (6.2 % drawdown in the continuous account).
 - Order flow and news cannot be evaluated historically; their value is measured only in the shadow test.
 - No historical spread: backtests use the spread in the snapshot's market metadata.
 - Survivorship bias: the universe is today's pair list and today's allowed-markets list.

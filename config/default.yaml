@@ -9,8 +9,11 @@
 #
 # v1.4 (team decision 2026-10-23, ADR-030): exits from scripts/exp_exits.py (Train search, Validation selection,
 # one Test run): T1 target 3R, initial stop 3 x ATR, trailing stop 4 x ATR. News gate on (ADR-029).
+#
+# v1.4.1 (user decision 2026-10-23, ADR-032): risk per trade 0.5 % (was 0.25), total open risk 2 % (was 1).
+# From scripts/exp_capital.py; everything else unchanged.
 
-strategy_version: v1.4-1D4h-trend-exits
+strategy_version: v1.4.1-1D4h-trend-exits-risk0.5
 
 challenge:
   # Team, 2026-10-22: ends Friday 21:00 Tehran = 2026-10-23 17:30 UTC (KICKOFF said 10-24; team answer wins).
@@ -147,8 +150,8 @@ ranking:
 
 risk:
   equity_cap_tmn: 5000000
-  risk_per_trade_pct: 0.25
-  max_open_risk_pct: 1.0
+  risk_per_trade_pct: 0.5            # ADR-032 (was 0.25)
+  max_open_risk_pct: 2.0             # ADR-032 (was 1.0)
   max_position_pct: 15.0
   max_slots: 10
   min_buy_tmn: 100000

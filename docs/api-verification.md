@@ -129,6 +129,23 @@
 - endpoint وجود دارد و احراز هویت می‌خواهد، ولی کلید فعلی پذیرفته نمی‌شود (قالب کلید `id|token`، ۶۷ کاراکتر).
 - **وضعیت: `pending`.** طبق `09` §۴، کارمزد از config با `assumed: true` خوانده می‌شود. **Q-06** به‌روز شد: تیم نوع کلید (کلید API حساب مسابقه؟) و نرخ کارمزد را تأیید کند. برای جلوگیری از قفل شدن حساب، تلاش بیشتری انجام نشد.
 
+### V7 — بررسی دوباره (2026-10-23 00:35 UTC، فقط GET)
+
+| درخواست | پاسخ |
+|---|---|
+| `GET /v1/account/balances` با `x-api-key` کلید فعلی | `400`، بدنه متنی `Bad Request`، هدر `x-authenticated: false`، `x-auth-cache-status: hit` |
+| `GET /v1/account/openOrders` با همان کلید | همان |
+| همان endpoint با کلید ساختگی `abcdef` | `401 {"code":1201,"message":"invalid API key format"}` |
+| همان endpoint با کلید ساختگی `123\|abc...` | `401 {"code":1201,"message":"invalid token hash"}` |
+
+- نتیجه: کلید فعلی **واقعی و ثبت‌شده** است (از بررسی hash عبور می‌کند)، ولی احراز هویت کامل نمی‌شود. محتمل‌ترین دلیل:
+  محدودیت IP کلید (IP عمومی این سیستم در آن لحظه `205.252.135.20` بود) یا نبودن مجوز لازم روی کلید. باید در پنل
+  والکس بررسی شود: کلید متعلق به حساب مسابقه باشد، IP فعلی در فهرست مجاز باشد، و مجوز معامله داشته باشد.
+- مسیرهای حساب از SDK غیررسمی `amiwrpremium/wallex` (سایت مستندات رسمی هنوز در دسترس نیست): هدر `x-api-key`؛
+  `GET /v1/account/balances`، `GET /v1/account/openOrders`، `GET /v1/account/trades`، `GET /v1/account/orders/{clientOrderId}`،
+  `POST /v1/account/orders` با `{symbol, side, type, quantity, price, client_id}`، `DELETE /v1/account/orders` با `{clientOrderId}`.
+  پیش از ارسال سفارش واقعی باید با پاسخ واقعی تأیید شوند.
+
 ## V8 — انواع سفارش (فقط مستندات، سفارشی ارسال نشد)
 
 - `api-docs.wallex.ir` (گواهی TLS نامعتبر، به GitHub Pages اشاره می‌کند) و `developers.wallex.ir/spot/*` (404) در دسترس نبودند.

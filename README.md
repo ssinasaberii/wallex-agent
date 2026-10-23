@@ -63,8 +63,8 @@ Output: `reports/backtest/<run_id>/`
 | `test_episodes/ep*/decisions.jsonl` | decision log of every Test episode |
 | `equity_drawdown.png`, `episode_returns.png` | charts |
 
-Snapshot used for the reported v1.4 results: `ecbb7bb14b3ec827` (42 symbols, 3 years of 1h candles):
-`python -m wallex_agent backtest --snapshot ecbb7bb14b3ec827` (run `20261022T231324Z`). The earlier hourly v1.2
+Snapshot used for the reported v1.4.1 results: `ecbb7bb14b3ec827` (42 symbols, 3 years of 1h candles):
+`python -m wallex_agent backtest --snapshot ecbb7bb14b3ec827` (run `20261023T003238Z`; v1.4 at 0.25 % risk: `20261022T231324Z`). The earlier hourly v1.2
 results used `0a4e977b89b6b576` with `--config config/v1.2_hourly.yaml`. The optimisation studies are scripts in
 `scripts/` (`optimize_tf.py`, `exp_exits.py`, `exp_risk.py`, ...) and are summarised in `docs/experiments.md`.
 
@@ -83,7 +83,7 @@ Variants on the same candidates: **A** rules judge, **B** Laya judge, **C** Laya
 algorithm). Output: `reports/shadow/<session>/` â€” `summary.md` (rewritten every hour: equity per variant, decision
 funnel, judge statistics, news that would block, uptime, API errors), `A|B|C/decisions.jsonl`,
 `B|C/judge_calls/*.json` (full Laya request/response), `news.jsonl` (interpreted headlines), `trades_*.csv`,
-`equity_*.csv`, `state.sqlite` (resume state). The v1.4 session is `challenge-v14`.
+`equity_*.csv`, `state.sqlite` (resume state). The v1.4.1 session is `challenge-v15` (from 2026-10-23 00:33 UTC); `challenge-v14` (v1.4) is kept as a record.
 Raw order books (20 levels, every 10 s) and trades are recorded in `data/recordings/<date>/`.
 
 ## 5. Tests and checks
@@ -111,7 +111,7 @@ Raw order books (20 levels, every 10 s) and trades are recorded in `data/recordi
 ## 6. Repository map
 
 ```text
-config/            default.yaml (v1.4, all parameters), v1.2_hourly.yaml, allowed_markets.yaml (challenge denylist),
+config/            default.yaml (v1.4.1, all parameters), v1.2_hourly.yaml, allowed_markets.yaml (challenge denylist),
                    macro_events.yaml, rss_feeds.yaml (news sources, tiers, asset names, systemic keywords)
 docs/              spec/, api-verification.md, OPEN_QUESTIONS.md, experiments.md
 src/wallex_agent/
