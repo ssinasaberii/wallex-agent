@@ -65,7 +65,9 @@ class RunResult:
 def run_period(cfg, base_view: HistoricalMarketView, uni: Universe, start_t: int, end_t: int, *,
                initial_tmn: float | None = None, judge=None, fee: FeeSnapshot | None = None,
                features: FeatureProvider | None = None, log_dir: Path | None = None,
-               header: dict | None = None, slip_mult: float = 1.0, cfg_override=None) -> RunResult:
+               header: dict | None = None, slip_mult: float = 1.0, cfg_override=None,
+               spread_cost: dict[str, float] | None = None) -> RunResult:
+    """spread_cost: per-symbol spread in % (experiments only); half of it is added to every fill's slippage."""
     cfg = cfg_override or cfg
     fee = fee or FeeSnapshot.from_config(cfg.fees)
     judge = judge or RulesBaselineJudge(cfg.judge.baseline_gray_policy)
@@ -74,7 +76,8 @@ def run_period(cfg, base_view: HistoricalMarketView, uni: Universe, start_t: int
 
     def slip_of(sym: str) -> float:
         s = cfg.slippage
-        return slip_mult * (s.tier1_per_side_pct if sym in uni.tier1 else s.tier2_per_side_pct) / 100
+        half_spread = (spread_cost or {}).get(sym, 0.0) / 2
+        return (slip_mult * (s.tier1_per_side_pct if sym in uni.tier1 else s.tier2_per_side_pct) + half_spread) / 100
 
     broker = BacktestSimBroker(pf, fee.taker, slip_of, cfg.exits.scale_out_breakeven)
     log = DecisionLog(log_dir, header or {"mode": "backtest", "variant": "A", "strategy_version": cfg.strategy_version})
