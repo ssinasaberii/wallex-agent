@@ -186,7 +186,7 @@ the strategy invests a small part of the capital at a time (0.5 % risk per trade
 
 Live Wallex data, simulated orders filled against the real order book, three virtual accounts on the same
 candidates (A rules, B Laya, C Laya + news), decisions every 4 hours until the challenge end
-(2026-10-23 17:30 UTC). `summary.md` is rewritten every hour with equity, trades, the decision funnel, judge
+(extended to 2026-10-26 20:30 UTC, the end of Monday in Tehran). `summary.md` is rewritten every hour with equity, trades, the decision funnel, judge
 statistics, news items that would block, uptime and API errors. Earlier sessions (`challenge`, `challenge-v13`)
 are kept as records.
 

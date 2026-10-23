@@ -143,4 +143,4 @@ scripts/                     optimize_tf.py, exp_*.py, period_stats.py, export_d
 - `x-ratelimit-limit: 600`؛ وب‌سوکت در دسترس نبود؛ `/v2/depth/all` همه دفترهای سفارش را یک‌جا می‌دهد.
 - معنای `isBuyOrder` تأیید نشده؛ TFI فقط لاگ می‌شود.
 - بازارهای مجاز: همه به‌جز `config/allowed_markets.yaml`. کارمزد: سطح ۱ والکس، Maker ۰٫۲۵٪، Taker ۰٫۳۰٪.
-- مسابقه **جمعه ۲ آبان ۱۴۰۵ ساعت ۲۱:۰۰ تهران (2026-10-23 17:30 UTC)** تمام می‌شود (`config/default.yaml` و `.env`).
+- مهلت معامله: **پایان دوشنبه ۵ آبان ۱۴۰۵، ساعت ۲۴ تهران (2026-10-26 20:30 UTC)** (تمدید تیم، Q-39؛ قبلاً جمعه ۲۱:۰۰). در `config/default.yaml` و `.env`.

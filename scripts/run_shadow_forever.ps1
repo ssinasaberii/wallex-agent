@@ -4,7 +4,7 @@ error), it is restarted after 15 s with the same session id, so state (positions
 reports/shadow/<session>/state.sqlite. Also restarts laya-serve if it is not answering.
 Usage: powershell -ExecutionPolicy Bypass -File scripts\run_shadow_forever.ps1 -Session challenge
 #>
-param([string]$Session = "challenge", [string]$EndUtc = "2026-10-23T17:30:00Z")
+param([string]$Session = "challenge", [string]$EndUtc = "2026-10-26T20:30:00Z")
 Set-Location (Split-Path $PSScriptRoot -Parent)
 New-Item -ItemType Directory -Force logs | Out-Null
 $end = [DateTime]::Parse($EndUtc).ToUniversalTime()
