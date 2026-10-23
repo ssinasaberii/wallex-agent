@@ -45,6 +45,7 @@ switch ($Task) {
     "backtest" { & $Py -m wallex_agent backtest --config $Config }
     "shadow" { & $Py -m wallex_agent shadow --config $Config }
     "report" { & $Py -m wallex_agent report }
+    "dashboard" { & $Py -m wallex_agent dashboard }
     default { throw "unknown task '$Task' (see the header of tasks.ps1)" }
 }
 exit $LASTEXITCODE

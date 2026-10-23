@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>داشبورد ربات والکس</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap">
+<style>
+:root{--bg:#f4f2ec;--panel:#fdfcf9;--panel2:#efebe2;--ink:#14213d;--muted:#5a6272;--line:#e2ded5;--accent:#d9622b;--accent-ink:#a8461a;
+--ok:#1f7a5c;--ok-bg:#e3f2ec;--bad:#b3401f;--bad-bg:#fbe7dd;--warn:#9a6a00;--warn-bg:#fbf1d9;--navy:#14213d;--navy2:#1e2e52;--on-navy:#f6f4ef;--on-navy-muted:#b9c2d3;
+--shadow:0 1px 2px rgba(20,33,61,.06),0 4px 16px rgba(20,33,61,.05)}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1524;--panel:#16203a;--panel2:#1c2846;--ink:#e9e7e1;--muted:#9aa6bd;--line:#2a3756;--accent:#f08a4b;--accent-ink:#f4a374;
+--ok:#5fcf9f;--ok-bg:#163a30;--bad:#f28b6b;--bad-bg:#3d2018;--warn:#f0c35a;--warn-bg:#3a3016;--navy:#1e2e52;--navy2:#26396a;--shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:15px;line-height:1.6}
+header{background:var(--navy);color:var(--on-navy);padding:14px 24px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;position:sticky;top:0;z-index:5}
+header h1{font-size:19px;margin:0;font-weight:800;margin-left:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--navy2);font-size:13px;color:var(--on-navy)}
+.dot{width:8px;height:8px;border-radius:50%;background:#8a93a6}.dot.on{background:#5fcf9f}.dot.off{background:#f28b6b}.dot.warn{background:#f0c35a}
+nav{display:flex;gap:4px;padding:10px 24px 0;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:58px;z-index:4}
+nav button{border:0;background:none;color:var(--muted);font:inherit;padding:10px 16px;border-radius:10px 10px 0 0;cursor:pointer;font-weight:500}
+nav button.active{background:var(--panel);color:var(--ink);font-weight:700;box-shadow:var(--shadow)}
+main{padding:20px 24px 120px;max-width:1280px;margin:0 auto}
+section.tab{display:none}section.tab.active{display:block}
+.grid{display:grid;gap:16px}.g4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:16px;margin:0 0 12px;font-weight:700}.card h3{font-size:14px;margin:0 0 6px;color:var(--muted);font-weight:500}
+.kpi{background:var(--navy);color:var(--on-navy);border:0}.kpi h3{color:var(--on-navy-muted)}.kpi b{display:block;font-size:28px;font-weight:800;line-height:1.3}
+.kpi small{color:var(--on-navy-muted)}
+.muted{color:var(--muted)}.pos{color:var(--ok)}.neg{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px;background:var(--panel2)}tr:last-child td{border-bottom:0}
+.tablewrap{overflow-x:auto}
+.tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--panel2);color:var(--muted)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}.tag.bad{background:var(--bad-bg);color:var(--bad)}.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.alert{padding:12px 16px;border-radius:12px;background:var(--warn-bg);color:var(--warn);margin-bottom:12px;font-weight:500}
+.alert.bad{background:var(--bad-bg);color:var(--bad)}
+.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cand{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel)}
+.cand .head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cand .head b{font-size:16px}
+.field{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(240px,1fr);gap:8px 20px;padding:14px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}.field.changed{background:linear-gradient(90deg,transparent,var(--warn-bg));border-radius:10px;padding-inline:10px}
+.field .lbl b{display:block}.field .lbl span{color:var(--muted);font-size:13px}.field .tested{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.field .tested:before{content:"نتیجه آزمایش: ";font-weight:700}
+.ctl{display:flex;gap:10px;align-items:center}.ctl input[type=range]{flex:1;accent-color:var(--accent)}
+.ctl input[type=number],.ctl select{width:120px;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.ctl .unit{color:var(--muted);font-size:13px;white-space:nowrap}
+.switch{position:relative;width:46px;height:26px;flex:none}.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--line);border-radius:999px;cursor:pointer;transition:.2s}
+.switch span:before{content:"";position:absolute;width:20px;height:20px;top:3px;right:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+span{background:var(--ok)}.switch input:checked+span:before{transform:translateX(-20px)}
+.savebar{position:fixed;bottom:0;left:0;right:0;background:var(--navy);color:var(--on-navy);padding:12px 24px;display:none;gap:12px;align-items:center;flex-wrap:wrap;z-index:6}
+.savebar.show{display:flex}.savebar .btn{background:var(--navy2);color:var(--on-navy);border-color:var(--navy2)}.savebar .btn.primary{background:var(--accent);border-color:var(--accent)}
+.modal{position:fixed;inset:0;background:rgba(10,15,28,.55);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.modal.show{display:flex}.modal .box{background:var(--panel);color:var(--ink);border-radius:18px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px 24px}
+.modal h2{margin-top:0}
+svg.chart{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted)}.legend i{display:inline-block;width:12px;height:3px;margin-left:6px;vertical-align:middle}
+.empty{color:var(--muted);padding:12px 0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;vertical-align:middle}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (max-width:640px){main{padding:14px 12px 120px}header{padding:12px}nav{padding:8px 12px 0;top:96px}.field{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>داشبورد ربات معامله‌گر والکس</h1>
+  <span class="pill"><span class="dot" id="p-live-dot"></span><span id="p-live">حساب واقعی …</span></span>
+  <span class="pill"><span class="dot" id="p-shadow-dot"></span><span id="p-shadow">تست سایه …</span></span>
+  <span class="pill" id="p-next">تصمیم بعدی …</span>
+  <span class="pill" id="p-upd">…</span>
+</header>
+<nav id="tabs">
+  <button data-tab="overview" class="active">نمای کلی</button>
+  <button data-tab="decisions">تحلیل‌ها و تصمیم‌ها</button>
+  <button data-tab="trades">خرید و فروش‌ها</button>
+  <button data-tab="news">خبرها</button>
+  <button data-tab="settings">تنظیمات</button>
+  <button data-tab="history">تاریخچه تغییرات</button>
+</nav>
+<main>
+<section class="tab active" id="tab-overview">
+  <div id="alerts"></div>
+  <div class="grid g4" id="kpis"></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h2>ارزش حساب واقعی</h2><div id="eqchart"></div></div>
+    <div class="card"><h2>کنترل ربات</h2>
+      <p class="muted" id="ctl-note"></p>
+      <div class="row">
+        <button class="btn danger" id="b-stop">توقف حساب واقعی</button>
+        <button class="btn" id="b-start">روشن کردن حساب واقعی</button>
+        <button class="btn" id="b-restart-shadow">راه‌اندازی دوباره تست سایه</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin-bottom:0">روشن شدن معامله واقعی فقط وقتی ممکن است که قفل فایل <code>.env</code> را خودتان باز کرده باشید؛ داشبورد این قفل را عوض نمی‌کند.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>پوزیشن‌های باز حساب واقعی</h2><div class="tablewrap" id="positions"></div></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h2>مقایسه حساب‌ها</h2><div class="tablewrap" id="compare"></div></div>
+    <div class="card"><h2>آخرین تصمیم‌ها</h2><div class="tablewrap" id="lastcycles"></div></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-decisions">
+  <div class="row" style="margin-bottom:12px">
+    <span class="muted">منبع:</span>
+    <button class="btn" data-src="live">حساب واقعی</button>
+    <button class="btn" data-src="shadow">تست سایه (قواعد + هوش مصنوعی + خبر)</button>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h2>فرصت‌های بررسی‌شده</h2><p class="muted" style="font-size:13px">هر فرصتی که الگوی خرید داشت، با تصمیم نهایی و دلیلش.</p><div id="cands"></div></div>
+    <div class="card"><h2>چرخه‌های تصمیم</h2><p class="muted" style="font-size:13px">هر ۴ ساعت یک تصمیم خرید؛ هر ساعت مدیریت پوزیشن‌ها.</p><div class="tablewrap" id="cycles"></div></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-trades">
+  <div class="card"><h2>معاملات حساب واقعی</h2><div class="tablewrap" id="livetrades"></div></div>
+  <div class="card" style="margin-top:16px"><h2>رویدادهای سفارش (والکس)</h2><div class="tablewrap" id="events"></div></div>
+  <div class="card" style="margin-top:16px"><h2>معاملات تست سایه</h2><div class="tablewrap" id="shadowtrades"></div></div>
+</section>
+
+<section class="tab" id="tab-news">
+  <div class="card"><h2>آخرین تیترهای خبری و تفسیر هوش مصنوعی</h2><p class="muted" style="font-size:13px">خبر منفی جدی (شدت ۳) از منبع معتبر جلوی خرید همان ارز را می‌گیرد؛ رویداد بزرگ کل بازار جلوی همه خریدها را.</p><div class="tablewrap" id="newslist"></div></div>
+</section>
+
+<section class="tab" id="tab-settings">
+  <div class="alert" style="background:var(--panel2);color:var(--ink)">تغییرها اول بررسی و ذخیره می‌شوند و از تصمیم بعدیِ ربات‌ها، پس از راه‌اندازی دوباره، اثر می‌کنند. قبل از ذخیره می‌توانید با «بک‌تست سریع» اثر تغییر را روی حساب ۹٫۶ ماهه ببینید. از هر ذخیره یک نسخه پشتیبان نگه داشته می‌شود.</div>
+  <div class="card" id="info" style="margin-bottom:16px"></div>
+  <div id="settings"></div>
+</section>
+
+<section class="tab" id="tab-history">
+  <div class="card"><h2>تاریخچه تغییر تنظیمات</h2><div class="tablewrap" id="hist"></div></div>
+</section>
+</main>
+
+<div class="savebar" id="savebar">
+  <b id="sb-count"></b>
+  <span id="sb-list" style="font-size:13px;opacity:.85;flex:1;min-width:200px"></span>
+  <button class="btn" id="sb-reset">لغو تغییرات</button>
+  <button class="btn" id="sb-bt">بک‌تست سریع</button>
+  <button class="btn primary" id="sb-save">ذخیره</button>
+</div>
+<div class="modal" id="modal"><div class="box" id="modal-box"></div></div>
+
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf = new Intl.NumberFormat("fa-IR"), nf2 = new Intl.NumberFormat("fa-IR", {maximumFractionDigits: 2});
+const num = (x, d = 0) => x == null || isNaN(x) ? "—" : (d ? nf2 : nf).format(d ? x : Math.round(x));
+const pct = (x, d = 2) => x == null ? "—" : `${x > 0 ? "+" : ""}${new Intl.NumberFormat("fa-IR", {maximumFractionDigits: d, minimumFractionDigits: d}).format(x)}٪`;
+const when = t => t ? new Date(t * 1000).toLocaleString("fa-IR", {timeZone: "Asia/Tehran", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}) : "—";
+const signCls = x => x > 0 ? "pos" : x < 0 ? "neg" : "";
+async function api(path, body) {
+  const r = await fetch(path, {method: body ? "POST" : "GET", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+  if (r.status === 403) throw new Error("دسترسی رد شد: داشبورد را با لینکی که هنگام اجرا چاپ شد باز کنید.");
+  return r.json();
+}
+function modal(html) { $("#modal-box").innerHTML = html; $("#modal").classList.add("show"); }
+function closeModal() { $("#modal").classList.remove("show"); }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal" || e.target.dataset.close != null) closeModal(); });
+
+// ---------------------------------------------------------------- tabs
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x === b));
+  document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + b.dataset.tab));
+  try { localStorage.setItem("tab", b.dataset.tab); } catch (e) {}
+});
+try { const t = localStorage.getItem("tab"); if (t) $(`#tabs button[data-tab="${t}"]`)?.click(); } catch (e) {}
+
+// ---------------------------------------------------------------- labels
+const EV = {RECONCILE: ["تطبیق موجودی", ""], PLACED: ["سفارش ثبت شد", "warn"], BUY_FILLED: ["خرید انجام شد", "ok"], SELL_FILLED: ["فروش انجام شد", "ok"],
+  BUY_NOT_FILLED: ["خرید پر نشد", ""], BUY_REJECTED: ["خرید انجام نشد", "bad"], ERROR: ["خطا", "bad"], DRY_BUY: ["خرید آزمایشی", ""]};
+const HALT = {UNKNOWN_ORDER: "سفارش با وضعیت نامعلوم", RECONCILE_MISMATCH: "اختلاف موجودی کیف پول", REPEATED_ERRORS: "چند خطای پشت‌سرهم", OPEN_ORDERS_AT_START: "سفارش باز از اجرای قبلی"};
+const EXIT = {STOP: "حد ضرر", TRAIL_STOP: "حد ضرر متحرک", TARGET: "هدف سود", TIME: "پایان زمان", TIME_EXIT: "پایان زمان", FINAL_SETTLEMENT: "تسویه پایانی", SETTLEMENT: "تسویه", KILL_SWITCH: "توقف اضطراری", REGIME_EXIT: "تغییر روند"};
+const DEC = {BUY: ["خرید", "ok"], NO_TRADE: ["رد", "bad"], DEFER: ["صبر", "warn"]};
+
+// ---------------------------------------------------------------- chart
+function lineChart(series, opts = {}) {
+  const W = 640, H = 220, P = {l: 70, r: 12, t: 12, b: 26};
+  const all = series.flatMap(s => s.points);
+  if (all.length < 2) return `<p class="empty">هنوز داده کافی برای نمودار نیست؛ هر ساعت یک نقطه اضافه می‌شود.</p>`;
+  const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (y1 - y0 < 1) { y0 -= 5000; y1 += 5000; }
+  const pad = (y1 - y0) * 0.08; y0 -= pad; y1 += pad;
+  const X = x => P.l + (x - x0) / (x1 - x0 || 1) * (W - P.l - P.r), Y = y => H - P.b - (y - y0) / (y1 - y0) * (H - P.t - P.b);
+  const grid = [0, .5, 1].map(f => { const v = y0 + f * (y1 - y0); return `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${num(v)}</text>`; }).join("");
+  const base = opts.base != null ? `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(opts.base)}" y2="${Y(opts.base)}" stroke="var(--muted)" stroke-dasharray="4 4"/>` : "";
+  const lines = series.map(s => `<polyline fill="none" stroke="${s.color}" stroke-width="2.2" points="${s.points.map(p => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" ")}"/>`).join("");
+  const xl = [x0, x1].map((x, i) => `<text x="${i ? W - P.r : P.l}" y="${H - 6}" text-anchor="${i ? "end" : "start"}" font-size="11" fill="var(--muted)">${when(x)}</text>`).join("");
+  const leg = series.length > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>` : "";
+  return `${leg}<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="نمودار ارزش حساب">${grid}${base}${lines}${xl}</svg>`;
+}
+
+// ---------------------------------------------------------------- status
+let S = null, SRC = "live";
+async function refresh() {
+  try { S = await api("/api/status"); } catch (e) { $("#alerts").innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; return; }
+  const L = S.live;
+  const liveOn = S.running.live, dry = L ? L.dry_run : null;
+  $("#p-live-dot").className = "dot " + (liveOn ? "on" : "off");
+  $("#p-live").textContent = liveOn ? (dry ? "حساب واقعی: روشن (آزمایشی)" : "حساب واقعی: روشن · معامله واقعی") : "حساب واقعی: خاموش";
+  $("#p-shadow-dot").className = "dot " + (S.running.shadow ? "on" : "off");
+  $("#p-shadow").textContent = S.running.shadow ? "تست سایه: روشن" : "تست سایه: خاموش";
+  const mins = Math.max(0, Math.round((S.next_decision - Date.now() / 1000) / 60));
+  $("#p-next").textContent = `تصمیم خرید بعدی: ${when(S.next_decision)} (${num(mins)} دقیقه دیگر)`;
+  $("#p-upd").textContent = "به‌روزرسانی " + new Date().toLocaleTimeString("fa-IR", {timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit"});
+  // alerts
+  const al = [];
+  if (!liveOn) al.push(["bad", L ? `حساب واقعی ${num(L.age_s / 60)} دقیقه است وضعیت ننوشته؛ ممکن است خاموش باشد.` : "حساب واقعی هنوز اجرا نشده است."]);
+  (L?.halt_reasons || []).forEach(h => al.push(["bad", "خرید جدید متوقف است: " + (HALT[h] || h)]));
+  if (L?.errors_in_a_row) al.push(["", `${num(L.errors_in_a_row)} خطای پشت‌سرهم (با ۳ خطا خرید متوقف می‌شود)`]);
+  $("#alerts").innerHTML = al.map(([c, t]) => `<div class="alert ${c}">⚠ ${esc(t)}</div>`).join("");
+  // kpis
+  const ret = L ? (L.equity_tmn / L.initial_tmn - 1) * 100 : null;
+  const w = S.wallet?.balances?.TMN;
+  const lc = L?.last_cycle;
+  $("#kpis").innerHTML = [
+    ["ارزش حساب واقعی", L ? num(L.equity_tmn) : "—", L ? `تومان · <span>${pct(ret)}</span>` : ""],
+    ["تومان در کیف پول والکس", w ? num(w.value) : "—", w ? `آزاد ${num(w.free)} · قفل ${num(w.locked)}` : "پس از اجرای پایش زنده نمایش داده می‌شود"],
+    ["پوزیشن باز / سفارش باز", L ? `${num(L.positions.length)} / ${num(L.open_orders.length)}` : "—", L ? `کارمزد تا الان ${num(L.fees_tmn)} تومان` : ""],
+    ["آخرین تصمیم خرید", lc ? when(lc.ts_utc) : "—", lc ? `${num(lc.universe)} ارز بررسی · ${num(lc.candidates)} فرصت · ${num(lc.buys)} خرید` : "هنوز تصمیمی ثبت نشده"],
+  ].map(([h, b, s]) => `<div class="card kpi"><h3>${h}</h3><b>${b}</b><small>${s}</small></div>`).join("");
+  $("#eqchart").innerHTML = lineChart([{name: "حساب واقعی", color: "var(--accent)", points: S.live_equity}], {base: L?.initial_tmn});
+  $("#ctl-note").textContent = liveOn ? (dry ? "حساب در حالت آزمایشی کار می‌کند." : "حساب واقعی روشن است و سفارش واقعی ثبت می‌کند.") : "حساب واقعی خاموش است.";
+  // positions
+  const ps = L?.positions || [];
+  $("#positions").innerHTML = ps.length ? `<table><tr><th>ارز</th><th>زمان خرید</th><th>قیمت خرید</th><th>قیمت فعلی</th><th>حد ضرر</th><th>هدف</th><th>سود / زیان</th></tr>${ps.map(p => {
+    const r = (p.bid / p.entry - 1) * 100;
+    return `<tr><td><b>${esc(p.symbol)}</b></td><td>${when(p.entry_t)}</td><td>${num(p.entry)}</td><td>${num(p.bid)} <span class="${signCls(r)}">${pct(r)}</span></td><td>${num(p.stop)} <span class="muted">${pct((p.stop / p.entry - 1) * 100, 1)}</span></td><td>${p.target ? num(p.target) : "متحرک"}</td><td class="${signCls(p.pnl_tmn)}">${num(p.pnl_tmn)} تومان</td></tr>`;
+  }).join("")}</table>` : `<p class="empty">پوزیشن بازی نیست. ربات فقط وقتی می‌خرد که روند و الگوی ورود روشن باشد.</p>`;
+  // compare
+  const rows = [["حساب واقعی", L?.equity_tmn, L?.trades?.length]].concat(["A", "B", "C"].map(v => ["سایه: " + S.shadow[v].name, S.shadow[v].equity, S.shadow[v].trades.length]));
+  $("#compare").innerHTML = `<table><tr><th>حساب</th><th>ارزش (تومان)</th><th>بازده</th><th>معاملات</th></tr>${rows.map(([n, e, t]) => `<tr><td>${esc(n)}</td><td>${num(e)}</td><td class="${signCls(e - 5e6)}">${e ? pct((e / 5e6 - 1) * 100) : "—"}</td><td>${num(t ?? 0)}</td></tr>`).join("")}</table>`;
+  const cyc = (S.live_decisions.cycles.length ? S.live_decisions : S.shadow_decisions).cycles.slice(0, 6);
+  $("#lastcycles").innerHTML = cycleTable(cyc);
+  renderDecisions(); renderTrades(); renderNews();
+}
+function cycleTable(c) {
+  return c.length ? `<table><tr><th>زمان</th><th>بیت‌کوین</th><th>ارزهای بررسی‌شده</th><th>فرصت</th><th>خرید</th></tr>${c.map(x => `<tr><td>${when(x.t)}</td><td>${esc(x.btc)}</td><td>${num(x.universe)}</td><td>${num(x.candidates)}</td><td>${x.buys ? `<span class="tag ok">${num(x.buys)}</span>` : "۰"}</td></tr>`).join("")}</table>` : `<p class="empty">هنوز تصمیمی ثبت نشده.</p>`;
+}
+function renderDecisions() {
+  if (!S) return;
+  document.querySelectorAll("[data-src]").forEach(b => b.classList.toggle("primary", b.dataset.src === SRC));
+  const D = SRC === "live" ? S.live_decisions : S.shadow_decisions;
+  $("#cycles").innerHTML = cycleTable(D.cycles);
+  $("#cands").innerHTML = D.candidates.length ? D.candidates.map(c => {
+    const [dl, dc] = DEC[c.decision] || [c.decision, ""];
+    const stop = c.price && c.stop_pct != null ? `حد ضرر ${num(c.price * (1 - c.stop_pct / 100))} (${pct(-c.stop_pct, 1)})` : "";
+    const tgt = c.price && c.target_pct != null ? ` · هدف ${num(c.price * (1 + c.target_pct / 100))} (${pct(c.target_pct, 1)})` : "";
+    return `<div class="cand"><div class="head"><b>${esc(c.symbol)}</b><span class="tag ${dc}">${esc(dl)}</span><span class="muted">${when(c.t)}</span></div>
+      <div>${esc(c.setup)} · روند ارز: ${esc(c.regime)}${c.price ? ` · قیمت ${num(c.price)} تومان` : ""}</div>
+      <div class="muted" style="font-size:13px">${stop}${tgt}</div>
+      <div style="font-size:13px">دلیل: ${esc(c.reason)}${c.judge ? ` · داور: ${esc(c.judge)}${c.judge_conf != null ? ` (${num(c.judge_conf * 100)}٪)` : ""}` : ""}</div>
+      ${c.news.length ? `<div class="muted" style="font-size:12.5px">خبرها: ${c.news.map(esc).join(" | ")}</div>` : ""}</div>`;
+  }).join("") : `<p class="empty">هنوز فرصتی پیدا نشده. در بازار بی‌روند، ربات عمداً بیرون می‌ماند.</p>`;
+}
+document.querySelectorAll("[data-src]").forEach(b => b.onclick = () => { SRC = b.dataset.src; renderDecisions(); });
+function tradeTable(tr) {
+  return tr.length ? `<table><tr><th>ارز</th><th>خرید</th><th>فروش</th><th>قیمت خرید</th><th>قیمت فروش</th><th>دلیل فروش</th><th>سود / زیان</th></tr>${tr.map(t => `<tr><td><b>${esc(t.symbol)}</b></td><td>${when(t.entry_t)}</td><td>${when(t.exit_t)}</td><td>${num(t.entry_price)}</td><td>${num(t.exit_price)}</td><td>${esc(EXIT[t.exit_type] || t.exit_type)}</td><td class="${signCls(t.pnl_tmn)}">${num(t.pnl_tmn)} تومان</td></tr>`).join("")}</table>` : `<p class="empty">هنوز معامله‌ای بسته نشده.</p>`;
+}
+function renderTrades() {
+  $("#livetrades").innerHTML = tradeTable([...(S.live?.trades || [])].reverse());
+  const ev = S.live_events;
+  $("#events").innerHTML = ev.length ? `<table><tr><th>زمان</th><th>رویداد</th><th>جزئیات</th></tr>${ev.map(e => {
+    const [l, c] = EV[e.kind] || [e.kind, ""];
+    const {t, kind, ...rest} = e;
+    let d = "";
+    if (kind === "RECONCILE") d = rest.mismatch?.length ? "اختلاف: " + JSON.stringify(rest.mismatch) : `تومان ${num(rest.tmn?.value)} · بدون مغایرت`;
+    else if (kind === "ERROR") d = rest.what;
+    else d = [rest.symbol, rest.side, rest.qty != null ? "مقدار " + rest.qty : "", rest.price ? "قیمت " + num(rest.price) : "", rest.why || ""].filter(Boolean).join(" · ");
+    return `<tr><td>${when(t)}</td><td><span class="tag ${c}">${esc(l)}</span></td><td style="font-size:13px">${esc(d)}</td></tr>`;
+  }).join("")}</table>` : `<p class="empty">رویدادی ثبت نشده.</p>`;
+  const sh = ["A", "B", "C"].flatMap(v => S.shadow[v].trades.map(t => ({...t, symbol: `${t.symbol} (${v})`})));
+  $("#shadowtrades").innerHTML = tradeTable(sh);
+}
+function renderNews() {
+  const N = S.news;
+  $("#newslist").innerHTML = N.length ? `<table><tr><th>منتشر شده</th><th>منبع</th><th>تیتر</th><th>ارزها</th><th>تفسیر</th></tr>${N.map(n => {
+    const dir = n.direction === "negative" ? ["منفی", "bad"] : n.direction === "positive" ? ["مثبت", "ok"] : ["نامشخص", ""];
+    return `<tr><td style="white-space:nowrap">${when(n.t)}</td><td>${esc(n.source)}</td><td style="direction:ltr;text-align:left">${esc(n.title)}</td><td>${esc((n.assets || []).join(", ") || "—")}</td><td><span class="tag ${dir[1]}">${dir[0]}</span> <span class="muted">شدت ${esc(n.severity ?? "—")}</span>${n.systemic ? ' <span class="tag warn">کل بازار</span>' : ""}</td></tr>`;
+  }).join("")}</table>` : `<p class="empty">خبری نیست.</p>`;
+}
+
+// ---------------------------------------------------------------- control
+async function control(action, question) {
+  modal(`<h2>تأیید</h2><p>${question}</p><div class="row"><button class="btn primary" id="m-yes">بله</button><button class="btn" data-close>انصراف</button></div>`);
+  $("#m-yes").onclick = async () => {
+    $("#modal-box").innerHTML = `<p><span class="spin"></span> در حال انجام…</p>`;
+    const r = await api("/api/control", {action, confirm: true});
+    modal(`<h2>${r.ok ? "انجام شد" : "انجام نشد"}</h2><p>${esc(r.message)}</p><button class="btn" data-close>بستن</button>`);
+    setTimeout(refresh, 3000);
+  };
+}
+$("#b-stop").onclick = () => control("stop_live", "حساب واقعی متوقف شود؟ سفارش باز احتمالی را بعداً در پنل والکس بررسی کنید.");
+$("#b-start").onclick = () => control("start_live", "حساب واقعی روشن شود؟ اگر قفل .env باز نباشد، روشن نمی‌شود.");
+$("#b-restart-shadow").onclick = () => control("restart_shadow", "تست سایه با تنظیمات فعلی دوباره راه بیفتد؟ حساب‌های مجازی از همان‌جا ادامه می‌دهند.");
+
+// ---------------------------------------------------------------- settings
+let CFG = null; const PENDING = {};
+async function loadConfig() {
+  CFG = await api("/api/config");
+  const I = CFG.info;
+  $("#info").innerHTML = `<h2>مقادیر ثابت (فقط نمایش)</h2><div class="row" style="gap:24px">
+    <span>نسخه: <b>${esc(I.version)}</b></span><span>روند: <b>${I.regime_hours === 24 ? "روزانه" : num(I.regime_hours) + " ساعته"}</b></span>
+    <span>سیگنال ورود: <b>${num(I.trigger_hours)} ساعته</b></span><span>کارمزد: <b>${num(I.maker_pct, 2)}٪ / ${num(I.taker_pct, 2)}٪</b></span>
+    <span>پایان مهلت: <b>${when(Date.parse(I.end_utc) / 1000)}</b></span></div>
+    <p class="muted" style="font-size:13px;margin-bottom:0">تایم‌فریم‌ها و کارمزد از داشبورد عوض نمی‌شوند؛ آزمایش پنجره‌های کوتاه‌تر زیان‌ده بود.</p>`;
+  $("#settings").innerHTML = CFG.groups.map(g => `<div class="card" style="margin-bottom:16px"><h2>${esc(g.title)}</h2><p class="muted" style="margin-top:-6px">${esc(g.help)}</p>
+    ${g.fields.map(f => fieldHtml(f)).join("")}</div>`).join("");
+  document.querySelectorAll("[data-path]").forEach(el => el.addEventListener("input", onInput));
+  updateBar();
+}
+function fieldHtml(f) {
+  const id = "f-" + f.path.replace(/\./g, "_");
+  let ctl = "";
+  if (f.kind === "bool") ctl = `<label class="switch"><input type="checkbox" data-path="${f.path}" ${f.value ? "checked" : ""}><span></span></label><span class="unit" id="${id}-txt">${f.value ? "روشن" : "خاموش"}</span>`;
+  else if (f.kind === "select") ctl = `<select data-path="${f.path}">${f.options.map(([v, l]) => `<option value="${esc(v)}" ${v === f.value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  else ctl = `<input type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.value}" data-path="${f.path}" data-pair="${id}" aria-label="${esc(f.label)}"><input type="number" id="${id}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.value}" data-path="${f.path}" data-pair="${id}-r"><span class="unit">${esc(f.unit)}</span>`;
+  return `<div class="field" id="row-${id}"><div class="lbl"><b>${esc(f.label)}</b><span>${esc(f.help)}</span></div><div class="ctl">${ctl}</div>${f.tested ? `<div class="tested">${esc(f.tested)}</div>` : ""}</div>`;
+}
+function fieldByPath(p) { for (const g of CFG.groups) for (const f of g.fields) if (f.path === p) return f; }
+function onInput(e) {
+  const el = e.target, p = el.dataset.path, f = fieldByPath(p);
+  let v = f.kind === "bool" ? el.checked : f.kind === "select" ? el.value : Number(el.value);
+  if (f.kind === "bool") $("#f-" + p.replace(/\./g, "_") + "-txt").textContent = v ? "روشن" : "خاموش";
+  if (el.type === "range" || el.type === "number") document.querySelectorAll(`[data-path="${p}"]`).forEach(x => { if (x !== el) x.value = el.value; });
+  if (v === f.value) delete PENDING[p]; else PENDING[p] = v;
+  $("#row-f-" + p.replace(/\./g, "_")).classList.toggle("changed", p in PENDING);
+  updateBar();
+}
+function updateBar() {
+  const n = Object.keys(PENDING).length;
+  $("#savebar").classList.toggle("show", n > 0);
+  $("#sb-count").textContent = `${num(n)} تغییر ذخیره‌نشده`;
+  $("#sb-list").textContent = Object.entries(PENDING).map(([p, v]) => { const f = fieldByPath(p); return `${f.label}: ${fmtVal(f, f.value)} ← ${fmtVal(f, v)}`; }).join(" · ");
+}
+function fmtVal(f, v) { if (f.kind === "bool") return v ? "روشن" : "خاموش"; if (f.kind === "select") return (f.options.find(o => o[0] === v) || [v, v])[1]; return num(v, 2); }
+$("#sb-reset").onclick = () => { for (const k in PENDING) delete PENDING[k]; loadConfig(); };
+$("#sb-save").onclick = () => save(false);
+async function save(confirmed) {
+  const r = await api("/api/config", {changes: PENDING, confirm: confirmed});
+  if (r.errors?.length) return modal(`<h2>ذخیره نشد</h2><ul>${r.errors.map(e => `<li>${esc(e)}</li>`).join("")}</ul><button class="btn" data-close>بستن</button>`);
+  if (r.needs_confirm) return modal(`<h2>این تغییرها حساس‌اند</h2><ul>${r.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
+    <p class="muted">این مقادیر ریسک را بیشتر یا ایمنی را کمتر می‌کنند. پیشنهاد: اول «بک‌تست سریع» را ببینید.</p>
+    <div class="row"><button class="btn primary" id="m-confirm">مطمئنم، ذخیره کن</button><button class="btn" data-close>انصراف</button></div>`), $("#m-confirm").onclick = () => save(true);
+  if (r.ok) {
+    for (const k in PENDING) delete PENDING[k];
+    await loadConfig();
+    modal(`<h2>ذخیره شد</h2><p>نسخه پشتیبان: <code>${esc(r.backup)}</code></p><p>برای اعمال، ربات‌ها باید دوباره راه بیفتند. حساب‌ها از همان وضعیت ادامه می‌دهند.</p>
+      <div class="row"><button class="btn primary" id="m-rs">راه‌اندازی دوباره تست سایه</button><button class="btn" id="m-rl">راه‌اندازی دوباره حساب واقعی</button><button class="btn" data-close>بعداً</button></div>`);
+    $("#m-rs").onclick = () => control("restart_shadow", "تست سایه دوباره راه بیفتد؟");
+    $("#m-rl").onclick = () => control("restart_live", "حساب واقعی با تنظیمات جدید دوباره راه بیفتد؟");
+    loadHistory();
+  }
+}
+$("#sb-bt").onclick = async () => {
+  const r = await api("/api/backtest", {changes: PENDING});
+  if (!r.ok) return modal(`<h2>بک‌تست انجام نشد</h2><ul>${(r.errors || []).map(e => `<li>${esc(e)}</li>`).join("")}</ul><button class="btn" data-close>بستن</button>`);
+  modal(`<h2>بک‌تست سریع</h2><p><span class="spin"></span> در حال اجرای حساب ۵ میلیونی روی ۹٫۶ ماه گذشته (حدود یک دقیقه)…</p>`);
+  const poll = async () => {
+    const b = await api("/api/backtest/" + r.id);
+    if (b.status === "running") { $("#modal-box p").innerHTML = `<span class="spin"></span> در حال اجرا… ${num(b.elapsed_s)} ثانیه`; return setTimeout(poll, 3000); }
+    if (b.status !== "done") return modal(`<h2>بک‌تست ناموفق بود</h2><button class="btn" data-close>بستن</button>`);
+    const C = b.current, P = b.proposed;
+    const row = (l, k, f = x => num(x, 2), better = 1) => { const d = (P[k] - C[k]) * better; return `<tr><td>${l}</td><td>${f(C[k])}</td><td><b>${f(P[k])}</b></td><td class="${d > 0 ? "pos" : d < 0 ? "neg" : ""}">${!better ? "" : d > 0 ? "بهتر" : d < 0 ? "بدتر" : "یکسان"}</td></tr>`; };
+    modal(`<h2>نتیجه بک‌تست سریع</h2><p class="muted" style="font-size:13px">حساب پیوسته ۵ میلیونی، دی ۱۴۰۴ تا مهر ۱۴۰۵، با کارمزد و فاصله قیمت واقعی. فقط ربات قواعد (بدون خبر و هوش مصنوعی، چون تاریخچه‌شان در دسترس نیست).</p>
+      <table><tr><th>معیار</th><th>تنظیم فعلی</th><th>تنظیم پیشنهادی</th><th></th></tr>
+      ${row("سود کل", "return_pct", x => pct(x))}${row("بیشترین افت", "max_drawdown_pct", x => num(x, 2) + "٪", -1)}${row("بدترین ماه", "worst_month_pct", x => pct(x))}
+      ${row("میانگین ماهانه", "monthly_mean_pct", x => pct(x))}${row("تعداد معامله", "trades", x => num(x), 0)}${row("نرخ برد", "win_pct", x => num(x, 1) + "٪")}
+      ${row("ضریب سود", "profit_factor")}${row("سرمایه درگیر (میانگین)", "capital_in_use_pct", x => num(x, 1) + "٪", 0)}${row("توقف اضطراری", "kill_trips", x => num(x), -1)}</table>
+      <div style="margin-top:14px">${lineChart([{name: "فعلی", color: "var(--muted)", points: C.equity}, {name: "پیشنهادی", color: "var(--accent)", points: P.equity}], {base: 5e6})}</div>
+      <p class="muted" style="font-size:12.5px">نتیجه گذشته تضمین آینده نیست؛ این آزمایش روی همان داده‌ای است که تنظیم فعلی با آن انتخاب شده.</p>
+      <div class="row"><button class="btn" data-close>بستن</button></div>`);
+  };
+  setTimeout(poll, 3000);
+};
+async function loadHistory() {
+  const H = await api("/api/history");
+  $("#hist").innerHTML = H.length ? `<table><tr><th>زمان</th><th>تغییرها</th><th>هشدارها</th><th>پشتیبان</th></tr>${H.map(h => `<tr><td style="white-space:nowrap">${esc(h.t)}</td><td>${Object.entries(h.changes).map(([p, [a, b]]) => `${esc(p)}: ${esc(a)} ← <b>${esc(b)}</b>`).join("<br>")}</td><td>${(h.warnings || []).map(esc).join("<br>") || "—"}</td><td><code>${esc(h.backup)}</code></td></tr>`).join("")}</table>` : `<p class="empty">هنوز تغییری از داشبورد ذخیره نشده.</p>`;
+}
+refresh(); loadConfig(); loadHistory();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>

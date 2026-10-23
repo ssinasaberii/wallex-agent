@@ -92,13 +92,32 @@ The live account is variant **LC** (Laya + news, the same algorithm as C) with `
 `data/wallex_orders.py` (the only module allowed to place or cancel orders; exact allowlist, no withdrawal/OTC/transfer):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scriptsun_shadow_forever.ps1 -Session live-dry-1 -Variants LC
+powershell -ExecutionPolicy Bypass -File scripts
+un_shadow_forever.ps1 -Session live-dry-1 -Variants LC
 ```
 
 By default (`live.dry_run: true`) every order request is built and logged but not sent, and fills are simulated against
 the live book. Sending needs both `live.dry_run: false` and `.env` `WALLEX_LIVE_APPROVAL=I-APPROVE-LIVE-ORDERS`, set only
 by the user (PLAN_LIVE.md). Caps: 120,000 TMN per buy, 250,000 TMN open in total. Events: `reports/shadow/<session>/
 live_events_LC.jsonl`; status line in `summary.md`.
+
+## 4c. Dashboard (local control panel)
+
+```powershell
+.	asks.ps1 dashboard          # or: python -m wallex_agent dashboard
+```
+
+Opens `http://127.0.0.1:8765/?t=<token>` (the link is also written to `reports/dashboard_url.txt`). Persian, RTL,
+light/dark. Tabs: overview (live account value, wallet, positions with stops and targets, controls), analyses and
+decisions (every 4-hour decision and every candidate with its reason, live account or shadow C), trades and Wallex order
+events, news with the AI's reading, settings, change history.
+
+Settings: 32 whitelisted values (risk, live caps, entry setups, stops and exits, universe and news), each with its range
+and what the backtests showed. Saving validates ranges, cross-checks and the whole config, keeps a backup in
+`config/backups/` and an audit line in `reports/config_changes.jsonl`; changes that loosen a safety rule need an explicit
+confirmation. "Quick backtest" runs the 9.6-month continuous account with the pending change next to the current config
+before you save. Bots read the config at start, so the dashboard offers to restart them. It never touches `.env` (the
+live-order approval stays with the user) and serves only 127.0.0.1 with a per-run token and a Host/Origin check.
 
 ## 5. Tests and checks
 

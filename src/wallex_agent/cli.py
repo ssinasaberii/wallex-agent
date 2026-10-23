@@ -26,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
     # LC = live account (LiveBroker; dry run unless config live.dry_run is false AND .env approval is set)
     sh.add_argument("--variants", default="A,B,C")
     sh.add_argument("--once", action="store_true", help="run one decision cycle now and exit (smoke test)")
+    db = sub.add_parser("dashboard", help="local control panel on 127.0.0.1 (settings, decisions, trades)")
+    db.add_argument("--port", type=int, default=8765)
+    db.add_argument("--no-browser", action="store_true")
     bt = sub.add_parser("backtest", help="run the backtest suite")
     bt.add_argument("--config", default=None)
     bt.add_argument("--snapshot", default=None)
@@ -56,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
 
         cfg = load_config(args.config or DEFAULT_CONFIG)
         print(json.dumps(fetch_data.run(cfg, args.top_n), indent=1, default=str))
+    elif args.cmd == "dashboard":
+        from wallex_agent.dashboard.server import serve
+
+        serve(args.port, not args.no_browser)
     elif args.cmd == "shadow":
         import time
 

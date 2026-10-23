@@ -1,3 +1,4 @@
+# ruff: noqa: E501  (inline HTML template)
 """Live account monitor (user request 2026-10-23). Read-only: the bot's status file plus GET /v1/account/balances.
 
 Writes reports/shadow/<session>/status.html (Persian, refreshes itself every 30 s) and prints a short summary.
@@ -54,6 +55,7 @@ def build(session: str) -> tuple[str, str]:
     s = json.loads(f.read_text(encoding="utf-8"))
     age = time.time() - s["t"]
     w = wallet()
+    (d / "wallet.json").write_text(json.dumps({"t": int(time.time()), "balances": w}, ensure_ascii=False), encoding="utf-8")
     ev = []
     ef = d / "live_events_LC.jsonl"
     if ef.exists():
