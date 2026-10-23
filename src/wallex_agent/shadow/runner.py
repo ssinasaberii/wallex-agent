@@ -475,10 +475,40 @@ class ShadowRunner:
                 fh.write(json.dumps(x.__dict__, ensure_ascii=False) + "\n")
         (self.dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+    def write_live_status(self) -> None:
+        """Snapshot of each live account for scripts/live_status.py (every 30 s; read-only for the monitor)."""
+        for v in self.variants.values():
+            if not hasattr(v.broker, "halt_reasons"):
+                continue
+            pos, marks = [], {}
+            for p in v.pf.positions.values():
+                b = self.books.get(p.symbol, {}).get("bid")
+                bid = float(b[0]["price"]) if b else p.entry_price
+                marks[p.symbol] = bid
+                pos.append({"symbol": p.symbol, "setup": p.setup, "qty": p.qty, "entry": p.entry_price,
+                            "entry_t": p.entry_t, "stop": p.stop, "target": p.target, "bid": bid,
+                            "pnl_tmn": p.qty * bid - p.qty * p.entry_price - p.entry_fee_tmn,
+                            "exit_order": p.exit_order.client_id if p.exit_order else None})
+            st = {"t": int(time.time()), "session": self.session, "variant": v.name,
+                  "dry_run": v.broker.client.dry_run, "end_t": self.end_t, "cash_tmn": v.pf.cash,
+                  "equity_tmn": v.pf.equity(marks), "initial_tmn": v.pf.initial, "fees_tmn": v.pf.fees_paid,
+                  "positions": pos, "open_orders": [{"cid": k, "side": x["order"].side, "symbol": x["order"].symbol,
+                                                     "qty": x["order"].qty, "price": x["order"].price,
+                                                     "status": x["order"].status} for k, x in v.broker.open.items()],
+                  "halt_reasons": sorted(v.broker.halt_reasons), "errors_in_a_row": v.broker.errors,
+                  "trades": v.pf.trades[-20:], "cycles": self.stats["cycles"],
+                  "last_cycle": next(({k: r.get(k) for k in ("ts_utc", "btc_regime", "universe", "candidates", "buys")}
+                                      for r in reversed(v.log.records) if r.get("kind") == "cycle"), None),
+                  "last_candidates": [{k: r.get(k) for k in ("ts_utc", "symbol", "setup", "final_decision", "reason")}
+                                      for r in v.log.records if r.get("kind") == "candidate"][-10:]}
+            tmp = self.dir / f"live_status_{v.name}.json.tmp"
+            tmp.write_text(json.dumps(st, ensure_ascii=False, default=str), encoding="utf-8")
+            tmp.replace(self.dir / f"live_status_{v.name}.json")
+
     # ------------------------------------------------------------------ main loop
     def run(self) -> None:
         sc = self.cfg.shadow
-        next_depth = next_trades = next_flush = next_news = 0.0
+        next_depth = next_trades = next_flush = next_news = next_status = 0.0
         next_cycle = self._next_cycle_time()
         log.info("shadow %s started; end %s; next cycle %s", self.session,
                  datetime.fromtimestamp(self.end_t, UTC), datetime.fromtimestamp(next_cycle, UTC))
@@ -516,6 +546,10 @@ class ShadowRunner:
                 if now >= next_flush:
                     self.flush_recordings()
                     next_flush = now + 300
+                if self.orders is not None and now >= next_status:
+                    self.write_live_status()
+                    self.save_state()  # live positions survive a crash between hourly cycles
+                    next_status = now + 30
             except Exception:
                 self.stats["api_errors"] += 1
                 log.exception("shadow loop error (continuing)")

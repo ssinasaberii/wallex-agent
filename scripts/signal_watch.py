@@ -15,11 +15,11 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-SESSIONS = ["challenge-v15", "live-dry-1"]
+SESSIONS = ["challenge-v15", "live-dry-1", "live-1"]
 SEEN = ROOT / "reports" / "shadow" / "signal_watch_seen.json"
 BACKTEST = ROOT / "reports" / "backtest" / "20261023T003238Z" / "trades_continuous.csv"
 VARIANT = {"A": "فقط قواعد", "B": "قواعد + هوش مصنوعی", "C": "قواعد + هوش مصنوعی + خبر",
-           "LC": "حساب زنده (آزمایشی)"}
+           "LC": "حساب زنده"}
 SETUP = {
     "T1_pullback": ("پولبک در روند صعودی", "ارز در روند صعودی روزانه کمی عقب نشسته؛ انتظار: ادامه روند صعودی."),
     "T2_breakout": ("شکست سقف", "قیمت از سقف ۲۰ کندل ۴ ساعته بالاتر رفته؛ انتظار: ادامه حرکت رو به بالا."),

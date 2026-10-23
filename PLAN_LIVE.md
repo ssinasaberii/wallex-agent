@@ -1,7 +1,7 @@
 # PLAN_LIVE — ثبت سفارش واقعی (مرحله ۲-ب HANDOFF)
 
-> وضعیت (2026-10-23): **ساخته شد و در حالت آزمایشی (dry run) اجرا می‌شود. هیچ سفارش واقعی ارسال نشده است.**
-> ارسال واقعی فقط بعد از تأیید نهایی کاربر. تا آن موقع قانون `CLAUDE.md` («هیچ سفارش واقعی») برقرار است.
+> وضعیت (2026-10-23): **کاربر Live را تأیید کرد (ADR-033).** `live.dry_run: false` در config. قفل دوم (`.env`) و راه‌اندازی
+> با خود کاربر است (§۴). پایش: `scripts/live_status.py` ← `reports/shadow/live-1/status.html`.
 > کلید API حساب مسابقه کار می‌کند: زیرحساب «هکاتون استارکوچ | والکس» (prop)، ۵٬۰۰۰٬۰۰۰ تومان آزاد (Q-38).
 > مسیرها از مستندات رسمی `developers.wallex.ir/docs` (`docs/api-verification.md` V7/V8).
 
@@ -47,15 +47,15 @@ DecisionCycle (بدون تغییر، همان بک‌تست و سایه)
 - [x] کلیدها فقط از `.env` و `secrets.RedactingFilter`.
 - [x] تسویه (موتور تصمیم): از ۱۹:۰۰ UTC دوشنبه خرید جدید نه، از ۱۹:۳۰ فروش همه، در ۲۰:۳۰ فروش باقی‌مانده.
 - [x] اجرای آزمایشی با بازار زنده: یک چرخه (`live-dry-1`) و قالب سفارش با مشخصات واقعی BTC/ETH (قیمت و مقدار درست، سقف رعایت شد).
-- [ ] چند ساعت اجرای آزمایشی پیوسته (`live-dry-1` از 2026-10-23 ۱۱:۰۰ UTC) ← گزارش.
-- [ ] **تأیید نهایی کاربر** ← Live.
+- [x] اجرای آزمایشی پیوسته `live-dry-1` (۱۰:۳۸ تا ۱۲:۴۰ UTC): بدون خطای سفارش؛ تطبیق موجودی هر ۵ دقیقه سالم.
+- [x] **تأیید نهایی کاربر** (2026-10-23، ADR-033).
+- [x] پایش زنده: `live_status_LC.json` هر ۳۰ ثانیه + `scripts/live_status.py` (صفحه فارسی، موجودی واقعی کیف پول).
 
-## ۴. روشن کردن Live (فقط با تأیید نهایی کاربر)
+## ۴. روشن کردن Live
 
 1. در `.env`: `WALLEX_LIVE_APPROVAL=I-APPROVE-LIVE-ORDERS` (کاربر خودش می‌گذارد).
-2. در `config/default.yaml`: `live.dry_run: false`.
-3. توقف `live-dry-1` و اجرای `scripts\run_shadow_forever.ps1 -Session live-1 -Variants LC`.
-4. گزارش بعد از اولین معامله؛ افزایش سقف‌ها فقط با تأیید کاربر.
-
-بعد از تأیید: ADR-033 و Spec v1.5 در `docs/spec/07-decisions-and-sources.md`، و تغییر قانون `CLAUDE.md` به «سفارش واقعی
-فقط از مسیر LiveBroker با همه گیت‌های ایمنی».
+2. در `config/default.yaml`: `live.dry_run: false` (انجام شد).
+3. توقف `live-dry-1` (انجام شد) و اجرای `scripts\run_shadow_forever.ps1 -Session live-1 -Variants LC` (کاربر).
+4. پایش: `python -I scripts/live_status.py --session live-1 --watch` و باز کردن `reports/shadow/live-1/status.html`.
+5. توقف اضطراری: بستن پروسه‌های `run_shadow_forever` و `python -m wallex_agent` با `live-1`؛ سفارش باز را در پنل والکس لغو کنید.
+6. گزارش بعد از اولین معامله؛ افزایش سقف‌ها فقط با تأیید کاربر.

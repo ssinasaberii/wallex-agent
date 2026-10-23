@@ -130,8 +130,10 @@ def test_live_needs_user_approval(env):
     wo.WallexOrders(dry_run=False).close()
 
 
-def test_default_config_is_dry_run():
-    assert CFG.live.dry_run is True
+def test_live_model_defaults_to_dry_run():
+    from wallex_agent.config import Live
+
+    assert Live().dry_run is True  # a config without a live section never trades
 
 
 def test_dry_run_never_sends_orders():
