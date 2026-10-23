@@ -146,6 +146,24 @@
   `POST /v1/account/orders` با `{symbol, side, type, quantity, price, client_id}`، `DELETE /v1/account/orders` با `{clientOrderId}`.
   پیش از ارسال سفارش واقعی باید با پاسخ واقعی تأیید شوند.
 
+### V7/V8 — مستندات رسمی (`developers.wallex.ir/docs`، خوانده‌شده 2026-10-23)
+
+سایت مستندات حالا در دسترس است (Swagger: `spot-*.json`، `basic-services-*.json`، `trade-credit-*.yaml`).
+- احراز هویت: هدر `x-api-key`؛ `Content-Type: application/json` در همه درخواست‌ها.
+- کلید API **برای هر اکانت جداست**: اکانت اصلی یک کلید، و هر اکانت «اعتبار معاملاتی» کلید خودش. برای معامله اسپات با
+  اکانت اعتبار معاملاتی، علاوه بر کلید همان اکانت، هدر **`sub-account-client-id`** هم لازم است. موجودی اکانت اعتبار معاملاتی
+  از `GET /v1/account/balances-detail` (با همان هدر) خوانده می‌شود، نه `GET /v1/account/balances` (فقط اکانت اصلی).
+  بریف مسابقه از «بازارهای مجاز اعتبار معاملاتی» حرف می‌زند؛ پس حساب ۵ میلیونی مسابقه به احتمال زیاد یک اکانت اعتبار معاملاتی است.
+- کلید **تاریخ انقضا** («فعال تا»)، مجوز **خواندن/معامله/برداشت** و فیلد **IP** دارد؛ حداکثر ۳ کلید.
+- با کلید فعلی، `GET /sub-accounts` و `GET /v1/account/balances-detail` هم `400` و `x-authenticated: false` دادند؛ یعنی مشکل
+  از خود کلید است (منقضی، IP، یا حساب نادرست)، نه از مسیر.
+- سفارش: `POST /v1/account/orders` با `{symbol, side: BUY|SELL, type: LIMIT|MARKET|STOP_LIMIT|STOP_MARKET, price, quantity,
+  stop_Price?, client_id?}` (همه عددها رشته)؛ پاسخ `201` با `fills[]` شامل `fee` و `feeAsset`. `client_id` فقط حروف A–Z، رقم و `_`
+  و یکتا. لغو: `DELETE /v1/account/orders/{client_id}`. وضعیت: `GET /v1/account/orders/{client_id}`. باز: `GET /v1/account/openOrders`.
+  سقف ثبت سفارش ۲۰ درخواست در ۱۰ ثانیه. سفارش MARKET اگر از عمق دفتر بیشتر باشد یا قیمت را ۲٪ جابه‌جا کند خودکار لغو می‌شود.
+- **STOP سمت صرافی وجود دارد** (`STOP_LIMIT`، `STOP_MARKET`)؛ V8 به‌روز شد.
+- وب‌سوکت نسخه ۲ (Centrifugo): `wss://api.wallex.ir/connection/websocket`، کانال‌هایی مثل `public:BTCTMN@trade`؛ نسخه ۱ (`/ws`) منسوخ است.
+
 ## V8 — انواع سفارش (فقط مستندات، سفارشی ارسال نشد)
 
 - `api-docs.wallex.ir` (گواهی TLS نامعتبر، به GitHub Pages اشاره می‌کند) و `developers.wallex.ir/spot/*` (404) در دسترس نبودند.

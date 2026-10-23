@@ -1,7 +1,8 @@
 # PLAN_LIVE — ثبت سفارش واقعی (مرحله ۲-ب HANDOFF)
 
 > وضعیت: **پیش‌نویس، منتظر تأیید کاربر.** تا تأیید صریح این فایل، قانون `CLAUDE.md` («هیچ سفارش واقعی») برقرار است.
-> پیش‌شرط: کلید API والکس باید روی `GET /v1/account/balances` پاسخ ۲۰۰ بدهد (الان ۴۰۰ می‌دهد؛ `docs/api-verification.md` V7).
+> پیش‌شرط: کلید API **اکانت اعتبار معاملاتی مسابقه** و `sub-account-client-id` آن؛ `GET /v1/account/balances-detail` باید ۲۰۰
+> بدهد (الان ۴۰۰ می‌دهد؛ `docs/api-verification.md` V7). مسیرها از مستندات رسمی `developers.wallex.ir/docs` تأیید شد.
 
 ## ۱. معماری
 
@@ -13,8 +14,9 @@ DecisionCycle (بدون تغییر، همان بک‌تست و سایه)
 ```
 
 - `data/wallex_orders.py`: allowlist دقیق مسیرها:
-  `POST /v1/account/orders`، `DELETE /v1/account/orders`، `GET /v1/account/orders/{clientOrderId}`،
-  `GET /v1/account/openOrders`، `GET /v1/account/balances`، `GET /v1/account/trades`.
+  `POST /v1/account/orders`، `DELETE /v1/account/orders/{client_id}`، `GET /v1/account/orders/{client_id}`،
+  `GET /v1/account/openOrders`، `GET /v1/account/balances-detail`. هدرها: `x-api-key` و `sub-account-client-id` (از `.env`).
+  سقف ۲۰ سفارش در ۱۰ ثانیه.
   هر مسیر دیگری (برداشت، OTC، کارت، شبا، انتقال) خطا می‌دهد. `data/wallex_rest.py` فقط-GET می‌ماند.
 - `shadow/runner.py` با پرچم `--live`: همان حلقه، فقط variant C (Laya + خبر) با LiveBroker؛ A و B سایه می‌مانند تا
   مقایسه ادامه داشته باشد.
@@ -24,12 +26,12 @@ DecisionCycle (بدون تغییر، همان بک‌تست و سایه)
 
 | مرحله | رفتار |
 |---|---|
-| ارسال | `client_id` قطعی: `B-<candidate_id>` / `S-<candidate_id>-<t>`؛ قبل از ارسال در state ثبت می‌شود (`PENDING_SUBMIT`) |
+| ارسال | `client_id` قطعی: `B_<candidate_id>` / `S_<candidate_id>_<t>` (والکس فقط حرف، رقم و `_` می‌پذیرد)؛ قبل از ارسال در state ثبت می‌شود (`PENDING_SUBMIT`) |
 | پاسخ نامعلوم (timeout/5xx) | `UNKNOWN`؛ **ارسال دوباره نمی‌شود**؛ با `GET orders/{client_id}` وضعیت پیدا می‌شود؛ رزرو نگه داشته می‌شود |
 | پر شدن | فقط fill واقعی (مقدار، قیمت، کارمزد واقعی، حتی اگر به ارز پایه باشد) پوزیشن و P&L می‌سازد |
 | خرید LIMIT پر نشده | بعد از `candidate_ttl_s` (۱۰ دقیقه) لغو؛ fill جزئی = پوزیشن کوچک‌تر |
 | خروج | LIMIT روی Bid؛ MARKET فقط خروج اضطراری و فقط در بازارهای `is_market_type_enable`؛ فروش فقط تا موجودی آزاد؛ یک سفارش خروج برای هر پوزیشن |
-| حد ضرر | سمت ربات، هر ۱۵ ثانیه با Bid (STOP سمت صرافی تأیید نشده) |
+| حد ضرر | سمت ربات، هر ۱۵ ثانیه با Bid. والکس `STOP_LIMIT`/`STOP_MARKET` دارد؛ استفاده از آن فقط با تأیید تیم (رزرو موجودی و تداخل با خروج ربات باید آزموده شود) |
 
 ## ۳. چک‌لیست ایمنی (همه باید قبل از Live سبز باشند)
 
@@ -45,7 +47,9 @@ DecisionCycle (بدون تغییر، همان بک‌تست و سایه)
 
 ## ۴. ترتیب راه‌اندازی
 
-1. کاربر کلید را درست می‌کند (IP مجاز، مجوز معامله، حساب مسابقه) ← `GET balances` = ۲۰۰ و موجودی ~۵ میلیون تومان.
+1. کاربر در پنل والکس، **با انتخاب اکانت اعتبار معاملاتی مسابقه**، کلید جدید با مجوز «معامله» و تاریخ انقضای بعد از پایان
+   مسابقه می‌سازد (IP را خالی بگذارد یا IP فعلی را وارد کند) و `clientId` آن اکانت را هم می‌دهد ← `GET balances-detail` = ۲۰۰
+   و موجودی ~۵ میلیون تومان.
 2. تأیید مسیر و قالب سفارش با `GET openOrders` و `GET trades` (پاسخ واقعی، بدون سفارش).
 3. پیاده‌سازی + تست‌ها سبز (تخمین ۲ تا ۳ ساعت).
 4. dry-run با بازار زنده (حداقل یک چرخه تصمیم، ترجیحاً ۱ تا ۲ ساعت) ← گزارش به کاربر.
