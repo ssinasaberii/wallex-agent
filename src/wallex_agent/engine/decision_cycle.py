@@ -81,6 +81,10 @@ def _to_tmn(feat_row, signal_bar, tmn_bar) -> dict:
     return {"atr": float(feat_row["atr"]) * k, "bb_mid": float(feat_row["bb_mid"]) * k}
 
 
+def _tf(hours: int) -> str:
+    return "1D" if hours == 24 else f"{hours}h"
+
+
 def _r(x) -> float | None:
     x = float(x)
     return None if math.isnan(x) else round(x, 8)
@@ -273,8 +277,10 @@ def run_cycle(t: int, ctx: CycleContext) -> dict[str, Any]:
         context = {"portfolio": {"open_positions": len(pf.positions), "slots_used": pf.slots_used(),
                                  "max_slots": cfg.risk.max_slots,
                                  "open_risk_pct": round(100 * pf.open_risk() / max(eq_base, 1), 3),
+                                 "max_open_risk_pct": cfg.risk.max_open_risk_pct,
                                  "recent_trades": [round(tr["pnl_tmn"]) for tr in pf.trades[-5:]]},
-                   "macro_state": extra["macro_state"]}
+                   "macro_state": extra["macro_state"],
+                   "timeframes": {"regime": _tf(cfg.data.regime_hours), "trigger": _tf(cfg.data.trigger_hours)}}
         if ctx.context_extra is not None:
             context.update(ctx.context_extra(c))
         c.judge = safe_review(ctx.judge, c, context, cfg.judge.timeout_s, cfg.judge.candidate_ttl_s, created_wall,

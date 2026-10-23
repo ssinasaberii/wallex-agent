@@ -215,3 +215,18 @@ def test_halted_broker_makes_no_buy():
 def test_parse_fills_handles_totals_without_fill_list():
     f = parse_fills({"executedQty": "2", "executedSum": "200", "fee": "1", "fills": []}, "AAA")
     assert f == {"qty": 2.0, "price": 100.0, "fee_tmn": 1.0, "fee_base": 0.0}
+
+
+def test_judge_state_uses_configured_timeframes_and_risk_cap():
+    from types import SimpleNamespace
+
+    from wallex_agent.judge.laya import build_state
+
+    c = SimpleNamespace(candidate_id="c1", setup="T1_pullback", symbol="AAATMN", symbol_regime="UPTREND",
+                        btc_regime="RANGE", gray_zone=False, regime_inputs={"adx": 25.0}, trigger_inputs={"rsi": 45.0},
+                        gate={}, order_flow={})
+    ctx = {"portfolio": {"open_risk_pct": 0.5, "max_open_risk_pct": CFG.risk.max_open_risk_pct},
+           "timeframes": {"regime": "1D", "trigger": "4h"}}
+    text = "\n".join(s[1] for s in build_state(c, ctx))
+    assert "Symbol regime 1D" in text and "4h RSI" in text and "1D ADX" in text
+    assert f"of {CFG.risk.max_open_risk_pct}% cap" in text and "1h" not in text

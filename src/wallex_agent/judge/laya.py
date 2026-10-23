@@ -41,23 +41,25 @@ def build_state(c, ctx: dict[str, Any]) -> list[tuple[str, str, int]]:
     ri, ti, g, of = c.regime_inputs, c.trigger_inputs, c.gate, c.order_flow or {}
     pf = ctx.get("portfolio", {})
     news = ctx.get("news_headlines") or []
+    tf = ctx.get("timeframes") or {}
+    rt, tt = tf.get("regime", "4h"), tf.get("trigger", "1h")  # defaults = the v1.2 hourly configuration
     sec = [
         ("core", f"Entry candidate {c.candidate_id}. Spot BUY only. Setup {c.setup} on {c.symbol}. "
-                 f"Symbol regime 4h: {c.symbol_regime}. BTC regime (BTCUSDT 4h): {c.btc_regime}. "
+                 f"Symbol regime {rt}: {c.symbol_regime}. BTC regime (BTCUSDT {rt}): {c.btc_regime}. "
                  f"gray_zone={str(c.gray_zone).lower()}.", 99),
-        ("key", f"4h ADX {_fmt(ri.get('adx'), 1)}, +DI {_fmt(ri.get('pdi'), 1)}, -DI {_fmt(ri.get('mdi'), 1)}. "
-                f"1h RSI {_fmt(ti.get('rsi'), 1)}, RelVol {_fmt(ti.get('relvol'))}.", 99),
+        ("key", f"{rt} ADX {_fmt(ri.get('adx'), 1)}, +DI {_fmt(ri.get('pdi'), 1)}, -DI {_fmt(ri.get('mdi'), 1)}. "
+                f"{tt} RSI {_fmt(ti.get('rsi'), 1)}, RelVol {_fmt(ti.get('relvol'))}.", 99),
         ("fee", f"Fee gate: economic_viability={g.get('economic_viability')}, horizon H={g.get('H')}h, "
                 f"net reward:risk {_fmt(g.get('rr_net'))}, stop {_fmt(g.get('stop_dist_pct'))}%, "
                 f"target {_fmt(g.get('target_dist_pct'))}%.", 99),
         ("of", f"Order flow: OBI {_fmt(of.get('obi'))} ({of.get('status', 'na')}), "
                f"TFI {_fmt(of.get('tfi'))} (log only, direction field unverified).", 4),
-        ("secondary", f"4h EMA20 {'>' if (ri.get('ema20') or 0) > (ri.get('ema50') or 0) else '<'} EMA50, "
-                      f"ATR% rank {_fmt(ri.get('atr_pct_rank'), 0)}. 1h close vs BB lower/mid: "
+        ("secondary", f"{rt} EMA20 {'>' if (ri.get('ema20') or 0) > (ri.get('ema50') or 0) else '<'} EMA50, "
+                      f"ATR% rank {_fmt(ri.get('atr_pct_rank'), 0)}. {tt} close vs BB lower/mid: "
                       f"{_fmt(ti.get('close'), 6)} / {_fmt(ti.get('bb_lower'), 6)} / {_fmt(ti.get('bb_mid'), 6)}.", 3),
         ("context", f"Fear&Greed {ctx.get('fng', 'na')}. Macro: {ctx.get('macro_state', 'normal')}. "
                     f"Portfolio: {pf.get('slots_used', 0)} of {pf.get('max_slots', 10)} slots, "
-                    f"open risk {pf.get('open_risk_pct', 0)}% of 1.0% cap.", 2),
+                    f"open risk {pf.get('open_risk_pct', 0)}% of {pf.get('max_open_risk_pct', 1.0)}% cap.", 2),
     ]
     for k, h in enumerate(news[:5]):
         sec.append((f"news{k}", f"News: {h}", 1 if k >= 2 else 5))
