@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     sh.add_argument("--config", default=None)
     sh.add_argument("--session", default=None, help="resume an existing session id")
     # A = rules, B = Laya, C = Laya + news (the trading algorithm); XA/XB (gate off) equal A/B in v1.3
+    # LC = live account (LiveBroker; dry run unless config live.dry_run is false AND .env approval is set)
     sh.add_argument("--variants", default="A,B,C")
     sh.add_argument("--once", action="store_true", help="run one decision cycle now and exit (smoke test)")
     bt = sub.add_parser("backtest", help="run the backtest suite")

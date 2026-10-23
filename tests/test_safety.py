@@ -40,7 +40,7 @@ _BAD_PATH = re.compile(r"/v\d/account/(orders|otc)|/v\d/[\w/]*withdraw", re.IGNO
 def test_no_write_http_calls_or_order_endpoints_in_source():
     offenders = []
     for f in SRC.rglob("*.py"):
-        if f.name == "live.py":  # LiveBroker: interface only, raises NotImplementedError
+        if f.name in ("live.py", "wallex_orders.py"):  # the order path: allowlisted, dry run by default (test_live)
             continue
         text = f.read_text(encoding="utf-8")
         for i, line in enumerate(text.splitlines(), 1):

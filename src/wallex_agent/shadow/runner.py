@@ -209,6 +209,14 @@ class ShadowRunner:
         self.news_interp = LayaNewsInterpreter(secrets.get("LAYA_URL") or "http://127.0.0.1:8000",
                                                cfg.news.min_choice_prob, cfg.judge.timeout_s)
         self.fng = FearGreed(cfg.news.fng_url)
+        # LC = the live account (Laya + news, real orders through LiveBroker; dry run unless approved, PLAN_LIVE.md)
+        self.orders = None
+        if any(n.startswith("L") for n in variants):
+            from wallex_agent.data.wallex_orders import WallexOrders
+
+            self.orders = WallexOrders(dry_run=cfg.live.dry_run)
+            log.warning("LIVE variant enabled: dry_run=%s, max order %s TMN, max open %s TMN", cfg.live.dry_run,
+                        cfg.live.max_order_tmn, cfg.live.max_notional_tmn)
         self.variants: dict[str, Variant] = {}
         for name in variants:
             self.variants[name] = self._load_or_new(name)
@@ -217,8 +225,10 @@ class ShadowRunner:
     def _load_or_new(self, name: str) -> Variant:
         row = self.db.execute("SELECT v FROM kv WHERE k=?", (f"pf_{name}",)).fetchone()
         start = int(time.time())
-        pf = pickle.loads(row[0]) if row else Portfolio(self.cfg.challenge.initial_equity_tmn, self.cfg.risk,
-                                                         start, self.end_t)
+        cash0 = self.cfg.challenge.initial_equity_tmn
+        if name.startswith("L") and row is None:  # a new live account starts from the real free TMN balance
+            cash0 = min(cash0, self.orders.balances().get("TMN", {}).get("free", 0.0))
+        pf = pickle.loads(row[0]) if row else Portfolio(cash0, self.cfg.risk, start, self.end_t)
         pf.cfg = self.cfg.risk  # a resumed account follows the current risk rules (e.g. kill-switch reset)
         from wallex_agent.backtest.suite import source_hash
 
@@ -237,11 +247,24 @@ class ShadowRunner:
         else:
             judge = LayaJudge(secrets.get("LAYA_URL") or "http://127.0.0.1:8000", self.cfg.judge,
                               self.cfg.judge.timeout_s)
+        if name.startswith("L"):
+            from wallex_agent.execution.live import LiveBroker
+
+            broker = LiveBroker(pf, self.fee.taker, self.books, dlog, self.orders, self.metas, self.cfg.live)
+            if not self.orders.dry_run and (self.orders.open_orders().get("result") or {}).get("orders"):
+                broker.halt_reasons.add("OPEN_ORDERS_AT_START")  # state of a previous run is not known: no buys
+            return Variant(name, judge, pf, broker, dlog, vcfg)
         return Variant(name, judge, pf, ShadowSimBroker(pf, self.fee.taker, self.books, dlog), dlog, vcfg)
 
     def save_state(self) -> None:
         for v in self.variants.values():
             self.db.execute("REPLACE INTO kv VALUES (?, ?)", (f"pf_{v.name}", pickle.dumps(v.pf)))
+            ev = getattr(v.broker, "events", None)
+            if ev:
+                with (self.dir / f"live_events_{v.name}.jsonl").open("a", encoding="utf-8") as fh:
+                    for e in ev:
+                        fh.write(json.dumps(e, ensure_ascii=False, default=str) + "\n")
+                ev.clear()
         self.db.commit()
 
     # ------------------------------------------------------------------ data
@@ -411,6 +434,10 @@ class ShadowRunner:
             eq = v.pf.equity(marks)
             tr = v.pf.trades
             win = 100 * sum(1 for x in tr if x["pnl_tmn"] > 0) / len(tr) if tr else 0.0
+            if hasattr(v.broker, "halt_reasons"):
+                lines.insert(5, f"- LIVE {v.name}: dry_run={v.broker.client.dry_run}, "
+                                f"no-new-buys reasons={sorted(v.broker.halt_reasons) or 'none'}, "
+                                f"open orders={list(v.broker.open)}")
             lines.append(f"| {v.name} | {v.judge.provider} | {eq:,.0f} | {100 * (eq / v.pf.initial - 1):.3f} | "
                          f"{len(tr)} | {win:.0f} | {len(v.pf.positions)} | {v.pf.fees_paid:,.0f} | {v.pf.killed} |")
             rows.append((v, eq))
@@ -472,6 +499,8 @@ class ShadowRunner:
                     for v in self.variants.values():
                         v.broker.retry_pending()
                         v.broker.check_stops()
+                        if hasattr(v.broker, "reconcile"):
+                            v.broker.reconcile()
                     next_depth = now + sc.depth_poll_s
                 if now >= next_trades:
                     self.poll_trades()

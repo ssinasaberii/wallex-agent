@@ -4,7 +4,7 @@ error), it is restarted after 15 s with the same session id, so state (positions
 reports/shadow/<session>/state.sqlite. Also restarts laya-serve if it is not answering.
 Usage: powershell -ExecutionPolicy Bypass -File scripts\run_shadow_forever.ps1 -Session challenge
 #>
-param([string]$Session = "challenge", [string]$EndUtc = "2026-10-26T20:30:00Z")
+param([string]$Session = "challenge", [string]$EndUtc = "2026-10-26T20:30:00Z", [string]$Variants = "A,B,C")
 Set-Location (Split-Path $PSScriptRoot -Parent)
 New-Item -ItemType Directory -Force logs | Out-Null
 $end = [DateTime]::Parse($EndUtc).ToUniversalTime()
@@ -22,7 +22,7 @@ while ([DateTime]::UtcNow -lt $end.AddMinutes(5)) {
     Ensure-Laya
     $stamp = [DateTime]::UtcNow.ToString("yyyyMMddTHHmmss")
     Add-Content logs\shadow_watchdog.log "$stamp start session=$Session"
-    & .\.venv\Scripts\python.exe -m wallex_agent shadow --session $Session *>> "logs\shadow_$Session.log"
+    & .\.venv\Scripts\python.exe -m wallex_agent shadow --session $Session --variants $Variants *>> "logs\shadow_$Session.log"
     Add-Content logs\shadow_watchdog.log "$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')) exit code=$LASTEXITCODE"
     if ([DateTime]::UtcNow -ge $end) { break }
     Start-Sleep 15

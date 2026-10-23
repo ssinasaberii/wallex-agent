@@ -241,3 +241,14 @@ shadow:
   trades_poll_s: 15
   record_depth_levels: 20
   virtual_end_utc: null
+
+live:
+  # Real orders on the challenge credit sub-account (PLAN_LIVE.md). Dry run by default: everything runs except the
+  # request to Wallex. Sending needs dry_run: false here AND .env WALLEX_LIVE_APPROVAL set by the user.
+  dry_run: true
+  max_order_tmn: 120000
+  max_notional_tmn: 250000
+  limit_offset_pct: 0.3
+  order_ttl_s: 60
+  reconcile_s: 300
+  max_consecutive_errors: 3

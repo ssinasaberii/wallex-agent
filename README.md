@@ -86,6 +86,20 @@ funnel, judge statistics, news that would block, uptime, API errors), `A|B|C/dec
 `equity_*.csv`, `state.sqlite` (resume state). The v1.4.1 session is `challenge-v15` (from 2026-10-23 00:33 UTC); `challenge-v14` (v1.4) is kept as a record.
 Raw order books (20 levels, every 10 s) and trades are recorded in `data/recordings/<date>/`.
 
+## 4b. Live account (real orders, dry run by default)
+
+The live account is variant **LC** (Laya + news, the same algorithm as C) with `execution/live.py` (`LiveBroker`) and
+`data/wallex_orders.py` (the only module allowed to place or cancel orders; exact allowlist, no withdrawal/OTC/transfer):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scriptsun_shadow_forever.ps1 -Session live-dry-1 -Variants LC
+```
+
+By default (`live.dry_run: true`) every order request is built and logged but not sent, and fills are simulated against
+the live book. Sending needs both `live.dry_run: false` and `.env` `WALLEX_LIVE_APPROVAL=I-APPROVE-LIVE-ORDERS`, set only
+by the user (PLAN_LIVE.md). Caps: 120,000 TMN per buy, 250,000 TMN open in total. Events: `reports/shadow/<session>/
+live_events_LC.jsonl`; status line in `summary.md`.
+
 ## 5. Tests and checks
 
 ```powershell

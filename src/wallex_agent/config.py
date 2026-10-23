@@ -310,6 +310,17 @@ class Shadow(_M):
     virtual_end_utc: datetime | None
 
 
+class Live(_M):
+    """Real orders (PLAN_LIVE.md). Sending also needs .env WALLEX_LIVE_APPROVAL (data/wallex_orders.py)."""
+    dry_run: bool = True
+    max_order_tmn: float = 120000          # cap on one buy
+    max_notional_tmn: float = 250000       # cap on all open live positions together
+    limit_offset_pct: float = 0.3          # marketable LIMIT: best ask + this (buy) / best bid - this (sell)
+    order_ttl_s: int = 60                  # unfilled rest of a buy is cancelled after this
+    reconcile_s: int = 300                 # balances vs internal state
+    max_consecutive_errors: int = 3        # then no new buys (05 §15)
+
+
 class Config(_M):
     strategy_version: str
     challenge: Challenge
@@ -332,6 +343,7 @@ class Config(_M):
     judge: Judge
     backtest: Backtest
     shadow: Shadow
+    live: Live = Field(default_factory=Live)
 
     @property
     def config_hash(self) -> str:

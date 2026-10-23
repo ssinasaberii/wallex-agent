@@ -13,9 +13,13 @@ from wallex_agent.strategy.regime import UP
 CFG = load_config(apply_env=False)
 
 
-def test_live_broker_cannot_be_constructed():
-    with pytest.raises(NotImplementedError):
-        live.LiveBroker()
+def test_live_orders_cannot_be_sent_without_user_approval(monkeypatch):
+    from wallex_agent import secrets
+    from wallex_agent.data import wallex_orders
+
+    monkeypatch.setattr(secrets, "get", lambda k, d=None: {"WALLEX_API_KEY": "1|x", "WALLEX_SUB_ACCOUNT_CLIENT_ID": "s"}.get(k, d))
+    with pytest.raises(wallex_orders.LiveNotApproved):
+        wallex_orders.WallexOrders(dry_run=False)
 
 
 def test_backtest_never_touches_live_broker(monkeypatch):

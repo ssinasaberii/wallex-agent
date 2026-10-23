@@ -13,7 +13,7 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-SECRET_KEYS = ("WALLEX_API_KEY", "LLM_API_KEY", "JEV_API_KEY")
+SECRET_KEYS = ("WALLEX_API_KEY", "WALLEX_SUB_ACCOUNT_CLIENT_ID", "LLM_API_KEY", "JEV_API_KEY")
 _ROOT = Path(__file__).resolve().parents[2]
 _loaded: dict[str, str] | None = None
 
